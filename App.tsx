@@ -444,6 +444,10 @@ const App: React.FC = () => {
     if (isOnline()) {
         try {
             const me: Player = { id: localPlayerId, name: localPlayerName, isLocal: true, hand: [], score: 0, currentBid: null, tricksWon: 0, isHost: false, isReady: false };
+            console.log('🚪 [APP] Tentando entrar na sala:', {
+                roomId,
+                player: { id: me.id, name: me.name }
+            });
             await joinRoomDB(roomId, me, passwordInput);
             setGameState(prev => ({ ...prev, currentRoom: { ...prev.currentRoom!, id: roomId } })); 
         } catch (e: any) {

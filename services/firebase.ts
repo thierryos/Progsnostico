@@ -35,11 +35,12 @@ try {
 // Firebase pode converter arrays em objetos quando há buracos nos índices
 const normalizePlayersArray = (players: any): any[] => {
     if (Array.isArray(players)) {
-        return players;
+        // Filtra players inválidos (sem id ou null/undefined)
+        return players.filter(p => p && p.id);
     }
     if (players && typeof players === 'object') {
-        // Converte objeto para array usando Object.values
-        return Object.values(players).filter(p => p !== null && p !== undefined);
+        // Converte objeto para array usando Object.values e filtra inválidos
+        return Object.values(players).filter((p: any) => p && p.id);
     }
     return [];
 };
@@ -211,6 +212,18 @@ export const hostCreateRoom = async (roomConfig: RoomConfig, initialState: GameS
 
 export const joinRoomDB = async (roomId: string, player: Player, password?: string) => {
     if (!db) throw new Error("Servidor Offline");
+    
+    // Valida que o player tem id
+    if (!player || !player.id) {
+        console.error('❌ [JOIN] Player inválido:', player);
+        throw new Error("Player inválido - faltando ID");
+    }
+    
+    console.log('🚪 [JOIN] Tentando entrar na sala:', {
+        roomId,
+        playerId: player.id,
+        playerName: player.name
+    });
     
     try {
         const roomRef = ref(db, `rooms/${roomId}`);
