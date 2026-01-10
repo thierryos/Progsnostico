@@ -244,29 +244,37 @@ const App: React.FC = () => {
   };
 
   const syncState = (newState: Partial<GameState>) => {
+      // Remove campos undefined para não sobrescrever dados existentes no Firebase
+      const cleanState: Partial<GameState> = {};
+      for (const key in newState) {
+          if (newState[key as keyof GameState] !== undefined) {
+              cleanState[key as keyof GameState] = newState[key as keyof GameState] as any;
+          }
+      }
+      
       console.log('🔄 [SYNC] Iniciando syncState:', {
-          status: newState.status,
-          currentTurn: newState.currentTurn,
-          playersUpdate: newState.players?.map(p => ({ id: p.id, bid: p.currentBid, tricksWon: p.tricksWon })),
+          status: cleanState.status,
+          currentTurn: cleanState.currentTurn,
+          playersUpdate: cleanState.players?.map(p => ({ id: p.id, bid: p.currentBid, tricksWon: p.tricksWon })),
           isOnline: isOnline(),
           roomId: gameState.currentRoom?.id
       });
       
       if (isTutorial || isOfflineMode) {
-          setGameState(prev => ({ ...prev, ...newState }));
+          setGameState(prev => ({ ...prev, ...cleanState }));
       } else if (isOnline() && gameState.currentRoom && !firebaseError) {
           if (!gameState.currentRoom.id.startsWith('offline-')) {
              // Atualiza localmente primeiro para resposta imediata
              console.log('✅ [SYNC] Atualizando estado local primeiro');
-             setGameState(prev => ({ ...prev, ...newState }));
+             setGameState(prev => ({ ...prev, ...cleanState }));
              // Depois sincroniza com Firebase
              console.log('📤 [SYNC] Enviando para Firebase...');
-             updateRoomState(gameState.currentRoom.id, newState);
+             updateRoomState(gameState.currentRoom.id, cleanState);
           } else {
-             setGameState(prev => ({ ...prev, ...newState }));
+             setGameState(prev => ({ ...prev, ...cleanState }));
           }
       } else {
-          setGameState(prev => ({ ...prev, ...newState }));
+          setGameState(prev => ({ ...prev, ...cleanState }));
       }
   };
 
