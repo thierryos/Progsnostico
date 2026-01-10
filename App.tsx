@@ -12,7 +12,7 @@ import { GameState, Card, Player, PlayedCard, Suit, TrickRecord, RoomConfig, Lan
 import { generateDeck, calculateRoundSequence } from './constants';
 import { determineTrickWinner, calculateRoundResults, getBotBid, getBotCardToPlay } from './services/gameService';
 import { playSound } from './services/soundService';
-import { isOnline, getFirebaseError, hostCreateRoom, joinRoomDB, subscribeToRoom, updateRoomState, leaveRoomDB, formatPlayersForFirebase } from './services/firebase.ts';
+import { isOnline, getFirebaseError, hostCreateRoom, joinRoomDB, subscribeToRoom, updateRoomState, leaveRoomDB, formatPlayersForFirebase, setupPlayerPresence, monitorPlayerActivity } from './services/firebase.ts';
 import { WifiOff, AlertTriangle } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -193,6 +193,26 @@ const App: React.FC = () => {
           console.log('👤 [EFFECT] Não sou host, aguardando...');
       }
   }, [gameState.tableCards, gameState.currentTurn, gameState.status, gameState.players, localPlayerId, isTutorial, isOfflineMode]);
+
+  // Sistema de detecção de presença
+  useEffect(() => {
+      if (isTutorial || isOfflineMode || !gameState.currentRoom) return;
+      
+      const roomId = gameState.currentRoom.id;
+      
+      // Configura presença do player atual
+      const cleanupPresence = setupPlayerPresence(roomId, localPlayerId);
+      
+      // Monitora players offline e remove automaticamente
+      const unsubscribeMonitor = monitorPlayerActivity(roomId, (removedPlayerId) => {
+          console.log(`🚫 Player ${removedPlayerId} foi removido por inatividade`);
+      });
+      
+      return () => {
+          cleanupPresence?.();
+          unsubscribeMonitor?.();
+      };
+  }, [gameState.currentRoom?.id, localPlayerId, isTutorial, isOfflineMode]);
 
   const isHost = () => {
       if (isTutorial) return true;

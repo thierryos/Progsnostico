@@ -1,6 +1,6 @@
 
 import { initializeApp } from 'firebase/app';
-import { getDatabase, ref, set, onValue, update, push, remove, get, goOffline, query, orderByChild, equalTo, runTransaction } from 'firebase/database';
+import { getDatabase, ref, set, onValue, update, push, remove, get, goOffline, query, orderByChild, equalTo, runTransaction, onDisconnect } from 'firebase/database';
 import { GameState, RoomConfig, Player } from '../types';
 
 // Configuração Firebase - TODAS as variáveis devem estar no arquivo .env
@@ -321,4 +321,100 @@ export const cleanupInactiveRooms = async () => {
         console.error("Erro na limpeza de salas:", e);
         return 0;
     }
+};
+
+// === SISTEMA DE DETECÇÃO DE PRESENÇA ===
+export const setupPlayerPresence = (roomId: string, playerId: string) => {
+    if (!db) return;
+    
+    const playerRef = ref(db, `rooms/${roomId}/players/${playerId}/online`);
+    const roomRef = ref(db, `rooms/${roomId}`);
+    
+    // Marca como online
+    set(playerRef, true);
+    
+    // Configura o que fazer quando desconectar
+    const disconnectRef = onDisconnect(playerRef);
+    disconnectRef.set(false);
+    
+    // Também atualiza lastActivity quando desconectar
+    const activityRef = onDisconnect(ref(db, `rooms/${roomId}/players/${playerId}/lastActivity`));
+    activityRef.set(Date.now());
+    
+    return () => {
+        // Cleanup ao sair normalmente
+        set(playerRef, false);
+        disconnectRef.cancel();
+        activityRef.cancel();
+    };
+};
+
+// === REMOVER PLAYER DA SALA ===
+export const removePlayerFromRoom = async (roomId: string, playerId: string) => {
+    if (!db) return;
+    
+    try {
+        const roomRef = ref(db, `rooms/${roomId}`);
+        const snapshot = await get(roomRef);
+        
+        if (!snapshot.exists()) return;
+        
+        const roomData = snapshot.val();
+        const updatedPlayers = (roomData.currentRoom?.players || []).filter((p: Player) => p.id !== playerId);
+        
+        // Se não sobrou ninguém, deleta a sala
+        if (updatedPlayers.length === 0) {
+            await remove(roomRef);
+            console.log(`🗑️ Sala ${roomId} removida - todos os players saíram`);
+            return;
+        }
+        
+        // Se o host saiu, transfere para o próximo player
+        const oldHost = roomData.currentRoom?.players?.find((p: Player) => p.isHost);
+        if (oldHost?.id === playerId) {
+            updatedPlayers[0].isHost = true;
+            console.log(`👑 Host transferido para ${updatedPlayers[0].name}`);
+        }
+        
+        // Atualiza a sala
+        await update(roomRef, {
+            'currentRoom/players': updatedPlayers,
+            lastActivity: Date.now()
+        });
+        
+        console.log(`👋 Player ${playerId} removido da sala ${roomId}`);
+    } catch (e) {
+        console.error('Erro ao remover player:', e);
+    }
+};
+
+// === MONITORAR PLAYERS OFFLINE E REMOVER AUTOMATICAMENTE ===
+export const monitorPlayerActivity = (roomId: string, onPlayerRemoved?: (playerId: string) => void) => {
+    if (!db) return () => {};
+    
+    const roomRef = ref(db, `rooms/${roomId}/players`);
+    
+    const unsubscribe = onValue(roomRef, (snapshot) => {
+        if (!snapshot.exists()) return;
+        
+        const players = snapshot.val();
+        const now = Date.now();
+        const offlineThreshold = 10000; // 10 segundos offline = remove
+        
+        Object.keys(players).forEach(playerId => {
+            const player = players[playerId];
+            const lastActivity = player.lastActivity || 0;
+            const isOffline = player.online === false;
+            const timeSinceActivity = now - lastActivity;
+            
+            // Remove se estiver offline por muito tempo
+            if (isOffline && timeSinceActivity > offlineThreshold) {
+                console.log(`⚠️ Player ${playerId} offline há ${timeSinceActivity}ms, removendo...`);
+                removePlayerFromRoom(roomId, playerId);
+                onPlayerRemoved?.(playerId);
+            }
+        });
+    });
+    
+    return unsubscribe;
 };
