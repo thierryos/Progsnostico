@@ -1,97 +1,99 @@
-# Prognostico
+# 🎮 Prognóstico
 
-A multiplayer card game built with React, TypeScript, and Firebase Realtime Database.
+Um jogo de cartas multiplayer estratégico desenvolvido com React, TypeScript e Firebase, inspirado em jogos de previsão de vazas.
 
-## About
+## 🎯 Sobre o Jogo
 
-Prognostico is an engaging multiplayer card prediction game where players compete in real-time. Built with modern web technologies, it features a retro-inspired interface and smooth multiplayer gameplay.
+Prognóstico é um jogo de cartas onde os jogadores devem prever quantas rodadas irão vencer em cada partida. A habilidade está em fazer previsões precisas e jogar estrategicamente para alcançá-las!
 
-## Features
+### Características
 
-- **Real-time Multiplayer**: Connect and play with friends using Firebase Realtime Database
-- **Room System**: Create or join game rooms with customizable settings
-- **Interactive Gameplay**: Dynamic card mechanics and strategic gameplay
-- **Responsive Design**: Optimized for desktop and mobile devices
-- **Retro Aesthetic**: Classic pixel art style with modern animations
+- 🌐 **Multiplayer Online** - Jogue com amigos em tempo real
+- 🎨 **Interface Moderna** - Design inspirado em cartas clássicas
+- 🔥 **Tempo Real** - Sincronização instantânea via Firebase
+- 🎯 **Sistema de Pontuação** - Ganhe pontos por previsões corretas
+- 🏆 **Ranking** - Acompanhe a pontuação de todos os jogadores
+- 🎭 **Salas Privadas** - Crie salas com senha para jogar com amigos
 
-## Tech Stack
+## 🛠️ Tecnologias
 
-- **Frontend**: React 19 + TypeScript
-- **Build Tool**: Vite
-- **Database**: Firebase Realtime Database
-- **Styling**: Tailwind CSS
-- **Icons**: Lucide React
+- **React 19** - Framework UI
+- **TypeScript** - Tipagem estática
+- **Vite** - Build tool e dev server
+- **Firebase Realtime Database** - Sincronização em tempo real
+- **Tailwind CSS** - Estilização via CDN
+- **Lucide React** - Ícones
 
-## Getting Started
+## 💻 Desenvolvimento Local
 
-### Prerequisites
+### Pré-requisitos
 
-- Node.js (v16 or higher)
-- npm or yarn
+- Node.js 18+
+- npm ou yarn
+- Conta Firebase (para configurar backend)
 
-### Installation
-
-1. Clone the repository:
-   ```bash
-   git clone <repository-url>
-   cd Progsnostico
-   ```
-
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-3. Configure Firebase:
-   - Create a `.env` file in the root directory
-   - Add your Firebase configuration:
-     ```
-     VITE_FIREBASE_API_KEY=your_api_key
-     VITE_FIREBASE_AUTH_DOMAIN=your_auth_domain
-     VITE_FIREBASE_DATABASE_URL=your_database_url
-     VITE_FIREBASE_PROJECT_ID=your_project_id
-     VITE_FIREBASE_STORAGE_BUCKET=your_storage_bucket
-     VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-     VITE_FIREBASE_APP_ID=your_app_id
-     ```
-
-4. Run the development server:
-   ```bash
-   npm run dev
-   ```
-
-5. Open your browser and navigate to `http://localhost:3000`
-
-## Build
-
-To create a production build:
+### Instalação
 
 ```bash
-npm run build
+# Clone o repositório
+git clone https://github.com/seu-usuario/Prognostico.git
+cd Prognostico
+
+# Instale as dependências
+npm install
+
+# Configure as variáveis de ambiente
+cp .env.example .env
+# Edite o .env com suas credenciais do Firebase
+
+# Inicie o servidor de desenvolvimento
+npm run dev
 ```
 
-To preview the production build:
+O jogo estará disponível em `http://localhost:3000`
+
+### Configuração do Firebase
+
+1. Crie um projeto no [Firebase Console](https://console.firebase.google.com)
+2. Ative o Realtime Database
+3. Copie as credenciais e configure no arquivo `.env`
+4. Configure as regras de segurança do banco de dados conforme necessário
+
+### Scripts Disponíveis
 
 ```bash
-npm run preview
+npm run dev      # Inicia servidor de desenvolvimento
+npm run build    # Gera build de produção
+npm run preview  # Preview do build de produção
+npm run deploy   # Deploy para GitHub Pages
 ```
 
-## Project Structure
+## 📦 Deploy
 
-```
-Progsnostico/
-├── components/         # React components
-├── services/          # Firebase and game services
-├── App.tsx           # Main application component
-├── types.ts          # TypeScript type definitions
-├── constants.ts      # Game constants and configuration
-└── index.tsx         # Application entry point
-```
+O projeto está configurado para deploy automático no GitHub Pages via GitHub Actions.
 
-## License
+1. Configure os Secrets do GitHub com suas variáveis Firebase
+2. Faça push para a branch `main`
+3. O deploy será automático
 
-This project is private and proprietary.
+Veja [DEPLOY.md](DEPLOY.md) para instruções detalhadas.
 
-## Contributing
+## 🎮 Como Jogar
 
-This is a private project. If you have suggestions or find issues, please contact the maintainers.
+1. **Menu Principal** - Escolha criar uma sala ou entrar em uma existente
+2. **Sala de Espera** - Aguarde outros jogadores entrarem
+3. **Fazer Previsões** - Aposte quantas rodadas você irá ganhar
+4. **Jogar Cartas** - Jogue suas cartas estrategicamente
+5. **Pontuação** - Ganhe pontos por previsões corretas!
+
+## 📄 Licença
+
+Este projeto é de código aberto e está disponível sob a licença MIT.
+
+## 🤝 Contribuições
+
+Contribuições são bem-vindas! Sinta-se à vontade para abrir issues ou pull requests.
+
+---
+
+Desenvolvido com ❤️ usando React e Firebase

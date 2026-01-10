@@ -1,45 +1,18 @@
-# 🚀 Guia de Deploy - GitHub Pages
+# 🚀 Deploy Guide - GitHub Pages
 
-## ✅ Mudanças Implementadas
+## Prerequisites
 
-1. **Tempo de inatividade reduzido**: Salas inativas são removidas após **5 minutos**
-2. **Configuração para GitHub Pages**: 
-   - `vite.config.ts` com base path correto
-   - Script de deploy no `package.json`
-   - GitHub Actions para deploy automático
+- GitHub account
+- Firebase project configured
+- Repository pushed to GitHub
 
----
+## Setup
 
-## 📋 Passos para Deploy
+### 1. Configure GitHub Secrets
 
-### 1️⃣ Criar Repositório no GitHub
+Go to: **Settings** → **Secrets and variables** → **Actions** → **New repository secret**
 
-```bash
-# Inicializar git (se ainda não foi feito)
-cd "E:\Vscode Projetos\Prognostico\Progsnostico"
-git init
-
-# Adicionar arquivos
-git add .
-git commit -m "Initial commit - Prognostico card game"
-
-# Criar repositório no GitHub (via web):
-# - Acesse https://github.com/new
-# - Nome: Prognostico
-# - Deixe PÚBLICO
-# - NÃO adicione README, .gitignore ou licença
-
-# Conectar ao repositório remoto
-git remote add origin https://github.com/SEU_USUARIO/Prognostico.git
-git branch -M main
-git push -u origin main
-```
-
-### 2️⃣ Configurar Secrets no GitHub
-
-Vá em: **Settings** → **Secrets and variables** → **Actions** → **New repository secret**
-
-Adicione cada variável do seu `.env`:
+Add these secrets with your Firebase credentials:
 
 - `VITE_FIREBASE_API_KEY`
 - `VITE_FIREBASE_AUTH_DOMAIN`
@@ -50,111 +23,58 @@ Adicione cada variável do seu `.env`:
 - `VITE_FIREBASE_MEASUREMENT_ID`
 - `VITE_FIREBASE_DATABASE_URL`
 
-**⚠️ IMPORTANTE**: Copie os valores exatos do seu arquivo `.env`
+### 2. Enable GitHub Pages
 
-### 3️⃣ Habilitar GitHub Pages
+1. Go to: **Settings** → **Pages**
+2. Under **Source**, select: **GitHub Actions**
+3. Save
 
-1. Vá em: **Settings** → **Pages**
-2. Em **Source**, selecione: **GitHub Actions**
-3. Salve
+### 3. Deploy
 
-### 4️⃣ Deploy Automático
-
-O deploy acontecerá automaticamente quando você fizer push para `main`:
+Push to `main` branch:
 
 ```bash
 git add .
 git commit -m "Deploy to GitHub Pages"
-git push
+git push origin main
 ```
 
-Acompanhe em: **Actions** tab no GitHub
+The deployment will start automatically. Check progress in the **Actions** tab.
 
-### 5️⃣ Acessar o Jogo
+### 4. Access Your Game
 
-Após o deploy (2-3 minutos):
+After deployment (2-3 minutes):
 
 ```
-https://SEU_USUARIO.github.io/Prognostico/
+https://YOUR_USERNAME.github.io/Prognostico/
 ```
 
----
-
-## 🔧 Deploy Manual (Alternativo)
-
-Se preferir deploy manual sem GitHub Actions:
+## Manual Deploy (Alternative)
 
 ```bash
-# Instalar gh-pages
 npm install
-
-# Build e deploy
 npm run deploy
 ```
 
-**Nota**: Configure o repositório remoto e habilite Pages antes.
+## Important Notes
 
----
+- The `base` path in `vite.config.ts` must match your repository name
+- If you rename the repository, update the `base` value
+- All Firebase credentials must be added as GitHub Secrets
+- The first deployment may take 5-10 minutes
 
-## 🛠️ Comandos Úteis
+## Troubleshooting
 
-```bash
-# Desenvolvimento local
-npm run dev
+### Blank page after deploy
+Check if `base` in `vite.config.ts` matches your repository name
 
-# Build de produção
-npm run build
+### Firebase connection fails
+Verify all Secrets are correctly configured
 
-# Preview do build
-npm run preview
+### Build fails
+Run `npm install` and `npm run build` locally to check for errors
 
-# Deploy manual
-npm run deploy
-```
-
----
-
-## 📝 Configurações Importantes
-
-### vite.config.ts
-```typescript
-base: '/Prognostico/'  // Nome do seu repositório
-```
-
-**Se mudar o nome do repo**, atualize o `base` no `vite.config.ts`.
-
-### Firebase Rules
-
-Certifique-se de que as regras estão publicadas no Firebase Console:
-
-1. Acesse: https://console.firebase.google.com
-2. Vá em: **Realtime Database** → **Rules**
-3. Cole o conteúdo de `firebase-rules.json`
-4. **Publicar**
-
----
-
-## ❗ Troubleshooting
-
-### Problema: Página em branco após deploy
-**Solução**: Verifique se o `base` em `vite.config.ts` está correto
-
-### Problema: Firebase não conecta
-**Solução**: Verifique se todos os Secrets estão corretos no GitHub
-
-### Problema: Build falha
-**Solução**: Execute `npm install` e `npm run build` localmente primeiro
-
-### Problema: 404 ao acessar
-**Solução**: 
-- Verifique se Pages está habilitado
-- Aguarde 2-5 minutos após o primeiro deploy
-- Acesse a URL completa com `/Prognostico/` no final
-
----
-
-## 🎮 Pronto!
-
-Seu jogo está online e acessível para qualquer pessoa jogar!
-
-Compartilhe a URL: `https://SEU_USUARIO.github.io/Prognostico/`
+### 404 error
+- Ensure Pages is enabled
+- Wait 2-5 minutes after first deploy
+- Access the full URL with `/Prognostico/` at the end

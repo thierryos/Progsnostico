@@ -18,6 +18,17 @@ dist-ssr
 .env.production
 .env.development
 
+# Firebase sensitive files
+firebase-rules.json
+firebase-functions.js
+.firebaserc
+firebase.json
+metadata.json
+
+# Internal documentation
+CLEANUP_SYSTEM.md
+FIREBASE_RULES.md
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
