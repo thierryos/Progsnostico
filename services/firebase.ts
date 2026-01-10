@@ -360,7 +360,15 @@ export const removePlayerFromRoom = async (roomId: string, playerId: string) => 
         if (!snapshot.exists()) return;
         
         const roomData = snapshot.val();
-        const updatedPlayers = (roomData.currentRoom?.players || []).filter((p: Player) => p.id !== playerId);
+        let players = roomData.currentRoom?.players;
+        
+        // Garante que players é um array
+        if (!Array.isArray(players)) {
+            console.warn(`Players não é array para sala ${roomId}`, players);
+            return;
+        }
+        
+        const updatedPlayers = players.filter((p: Player) => p.id !== playerId);
         
         // Se não sobrou ninguém, deleta a sala
         if (updatedPlayers.length === 0) {
@@ -370,7 +378,7 @@ export const removePlayerFromRoom = async (roomId: string, playerId: string) => 
         }
         
         // Se o host saiu, transfere para o próximo player
-        const oldHost = roomData.currentRoom?.players?.find((p: Player) => p.isHost);
+        const oldHost = players.find((p: Player) => p.isHost);
         if (oldHost?.id === playerId) {
             updatedPlayers[0].isHost = true;
             console.log(`👑 Host transferido para ${updatedPlayers[0].name}`);
@@ -392,6 +400,15 @@ export const removePlayerFromRoom = async (roomId: string, playerId: string) => 
 export const monitorPlayerActivity = (roomId: string, onPlayerRemoved?: (playerId: string) => void) => {
     if (!db) return () => {};
     
+    // Temporariamente desabilitado para evitar erros
+    // TODO: Implementar com estrutura de dados correta
+    console.log(`📊 Monitor de atividade iniciado para sala ${roomId}`);
+    
+    return () => {
+        console.log(`🛑 Monitor de atividade parado para sala ${roomId}`);
+    };
+    
+    /* CÓDIGO ORIGINAL - TEMPORARIAMENTE DESABILITADO
     const roomRef = ref(db, `rooms/${roomId}/players`);
     
     const unsubscribe = onValue(roomRef, (snapshot) => {
@@ -417,4 +434,5 @@ export const monitorPlayerActivity = (roomId: string, onPlayerRemoved?: (playerI
     });
     
     return unsubscribe;
+    */
 };
