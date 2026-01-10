@@ -27,8 +27,10 @@ export const WaitingRoom: React.FC<WaitingRoomProps> = ({
   onToggleReady,
   onUpdateSettings
 }) => {
-  // Garante que players é um array
-  const players = Array.isArray(room.players) ? room.players : [];
+  // Garante que players é um array válido e filtra nulls/undefined
+  const players = Array.isArray(room.players) 
+    ? room.players.filter(p => p && p.id) 
+    : [];
   const isHost = players.find(p => p.id === localPlayerId)?.isHost;
   const localPlayer = players.find(p => p.id === localPlayerId);
   const [copied, setCopied] = useState(false);

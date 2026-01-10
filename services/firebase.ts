@@ -109,6 +109,7 @@ export const updateRoomState = async (roomId: string, newState: Partial<GameStat
         status: newState.status,
         currentTurn: newState.currentTurn,
         playersCount: newState.players?.length,
+        playersIsArray: Array.isArray(newState.players),
         tableCardsCount: newState.tableCards?.length
     });
     
@@ -128,8 +129,22 @@ export const updateRoomState = async (roomId: string, newState: Partial<GameStat
                 lastActivity: Date.now()
             });
             
+            // Garante que players seja sempre array se estiver presente
+            if (cleanState.players) {
+                cleanState.players = normalizePlayersArray(cleanState.players);
+            }
+            
             const merged = { ...currentData, ...cleanState };
-            console.log('✅ [FIREBASE] Transação: merge completo');
+            
+            // Garante que o resultado final também tenha players como array
+            if (merged.players) {
+                merged.players = normalizePlayersArray(merged.players);
+            }
+            
+            console.log('✅ [FIREBASE] Transação: merge completo', {
+                playersCount: merged.players?.length,
+                playersIsArray: Array.isArray(merged.players)
+            });
             return merged;
         });
         console.log('✅ [FIREBASE] Estado atualizado com sucesso');
@@ -148,7 +163,9 @@ export const updateRoomState = async (roomId: string, newState: Partial<GameStat
 };
 
 export const formatPlayersForFirebase = (players: Player[]) => {
-    return players.map(p => ({
+    // Garante que players é array e remove nulls
+    const validPlayers = Array.isArray(players) ? players.filter(p => p && p.id) : [];
+    return validPlayers.map(p => ({
         ...p,
         hand: p.hand || [],
     }));
@@ -208,11 +225,13 @@ export const joinRoomDB = async (roomId: string, player: Player, password?: stri
                 updatedPlayers = [...currentPlayers, player];
             }
             
+            // Sanitiza e garante que seja array compacto sem buracos
             const cleanPlayers = sanitizeForFirebase(updatedPlayers);
+            const normalizedPlayers = normalizePlayersArray(cleanPlayers);
 
             await update(roomRef, {
-                players: cleanPlayers,
-                'currentRoom/players': cleanPlayers,
+                players: normalizedPlayers,
+                'currentRoom/players': normalizedPlayers,
                 lastActivity: Date.now()
             });
             return true;
@@ -408,9 +427,13 @@ export const removePlayerFromRoom = async (roomId: string, playerId: string) => 
             console.log(`👑 Host transferido para ${updatedPlayers[0].name}`);
         }
         
-        // Atualiza a sala
+        // Sanitiza e normaliza players
+        const normalizedPlayers = normalizePlayersArray(sanitizeForFirebase(updatedPlayers));
+        
+        // Atualiza tanto na raiz quanto no currentRoom
         await update(roomRef, {
-            'currentRoom/players': updatedPlayers,
+            players: normalizedPlayers,
+            'currentRoom/players': normalizedPlayers,
             lastActivity: Date.now()
         });
         
