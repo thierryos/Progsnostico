@@ -247,8 +247,9 @@ const App: React.FC = () => {
       // Remove campos undefined para não sobrescrever dados existentes no Firebase
       const cleanState: Partial<GameState> = {};
       for (const key in newState) {
-          if (newState[key as keyof GameState] !== undefined) {
-              cleanState[key as keyof GameState] = newState[key as keyof GameState] as any;
+          const value = newState[key as keyof GameState];
+          if (value !== undefined) {
+              (cleanState as any)[key] = value;
           }
       }
       
