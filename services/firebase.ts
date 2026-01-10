@@ -1,35 +1,29 @@
-/// <reference types="vite/client" />
 
 import { initializeApp } from 'firebase/app';
-import { getDatabase, ref, set, onValue, update, remove, get, goOffline } from 'firebase/database';
+import { getDatabase, ref, set, onValue, update, push, remove, get, goOffline } from 'firebase/database';
 import { GameState, RoomConfig, Player } from '../types';
 
-// Use direct access for Vite replacement where possible, but protected by checks
-// This prevents "TypeError: can't access property ..., import.meta.env is undefined"
-const viteEnv = (typeof import.meta !== 'undefined' && import.meta.env) ? import.meta.env : undefined;
-const processEnv = (typeof process !== 'undefined' && process.env) ? process.env : undefined;
-
+// Configuração com Fallback: Tenta ler do .env, se falhar, usa as chaves diretas que você forneceu.
 const firebaseConfig = {
-  apiKey: (viteEnv && viteEnv.VITE_FIREBASE_API_KEY) || (processEnv && processEnv.REACT_APP_FIREBASE_API_KEY),
-  authDomain: (viteEnv && viteEnv.VITE_FIREBASE_AUTH_DOMAIN) || (processEnv && processEnv.REACT_APP_FIREBASE_AUTH_DOMAIN),
-  databaseURL: (viteEnv && viteEnv.VITE_FIREBASE_DATABASE_URL) || (processEnv && processEnv.REACT_APP_FIREBASE_DATABASE_URL),
-  projectId: (viteEnv && viteEnv.VITE_FIREBASE_PROJECT_ID) || (processEnv && processEnv.REACT_APP_FIREBASE_PROJECT_ID),
-  storageBucket: (viteEnv && viteEnv.VITE_FIREBASE_STORAGE_BUCKET) || (processEnv && processEnv.REACT_APP_FIREBASE_STORAGE_BUCKET),
-  messagingSenderId: (viteEnv && viteEnv.VITE_FIREBASE_MESSAGING_SENDER_ID) || (processEnv && processEnv.REACT_APP_FIREBASE_MESSAGING_SENDER_ID),
-  appId: (viteEnv && viteEnv.VITE_FIREBASE_APP_ID) || (processEnv && processEnv.REACT_APP_FIREBASE_APP_ID)
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY || "AIzaSyD-rSS3E12l5v0k2hU4xR7gQB2iarDJdOM",
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN || "prognostico-game.firebaseapp.com",
+  databaseURL: process.env.REACT_APP_FIREBASE_DATABASE_URL || "https://prognostico-game-default-rtdb.firebaseio.com",
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID || "prognostico-game",
+  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET || "prognostico-game.firebasestorage.app",
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID || "781327180794",
+  appId: process.env.REACT_APP_FIREBASE_APP_ID || "1:781327180794:web:6b03e669afa3c432a2ba43"
 };
 
 let db: any = null;
 let connectionError: string | null = null;
 
 try {
-    // Verifica se as chaves essenciais estão presentes
     if (firebaseConfig.apiKey && firebaseConfig.databaseURL) {
         const app = initializeApp(firebaseConfig);
         db = getDatabase(app);
-        console.log("Firebase inicializado via variáveis de ambiente.");
+        console.log("Firebase conectado com sucesso:", firebaseConfig.databaseURL);
     } else {
-        console.warn("Variáveis de ambiente (VITE_FIREBASE... ou REACT_APP_FIREBASE...) não encontradas. O jogo funcionará apenas Offline.");
+        console.warn("Configuração do Firebase ausente ou inválida. O modo Offline será ativado.");
     }
 } catch (e: any) {
     console.error("Erro na conexão com Firebase:", e);
@@ -91,6 +85,7 @@ export const subscribeToRoom = (roomId: string, callback: (data: GameState | nul
 export const updateRoomState = (roomId: string, newState: Partial<GameState>) => {
     if (!db) return;
     const roomRef = ref(db, `rooms/${roomId}`);
+    // Sanitiza antes de enviar para evitar erro de undefined
     const cleanState = sanitizeForFirebase(newState);
     
     update(roomRef, cleanState).catch(err => {
