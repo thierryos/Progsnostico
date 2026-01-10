@@ -24,7 +24,7 @@ export const Lobby: React.FC<LobbyProps> = ({ onJoin }) => {
         {/* Decoration */}
         <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-balatro-red via-balatro-blue to-balatro-gold"></div>
 
-        <h1 className="text-4xl sm:text-6xl text-white mb-2 drop-shadow-[4px_4px_0_#000]">PROGNOSTICO</h1>
+        <h1 className="text-4xl sm:text-6xl text-white mb-2 drop-shadow-[4px_4px_0_#000]">PROGNÓSTICO</h1>
         <p className="text-balatro-blue text-lg sm:text-xl mb-6 sm:mb-8 uppercase tracking-widest">Multiplayer Edition</p>
 
         {!isSearching ? (
