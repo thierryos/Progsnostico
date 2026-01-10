@@ -197,21 +197,24 @@ export const joinRoomDB = async (roomId: string, player: Player, password?: stri
     
     try {
         const roomRef = ref(db, `rooms/${roomId}`);
-        const snapshot = await get(roomRef);
         
-        if (snapshot.exists()) {
-            const data = snapshot.val();
+        // Usa transação para evitar race conditions quando múltiplos players entram simultaneamente
+        await runTransaction(roomRef, (currentData) => {
+            if (!currentData) {
+                throw new Error("Sala não encontrada");
+            }
+            
             // Garante que players seja sempre um array
-            const currentPlayers = Array.isArray(data.players) ? data.players : [];
+            const currentPlayers = Array.isArray(currentData.players) ? currentData.players : [];
             
             // Validar senha se a sala for privada
-            if (data.currentRoom.isPrivate) {
-                if (!password || password !== data.currentRoom.password) {
+            if (currentData.currentRoom.isPrivate) {
+                if (!password || password !== currentData.currentRoom.password) {
                     throw new Error("Senha incorreta");
                 }
             }
             
-            if (currentPlayers.length >= data.currentRoom.maxPlayers) {
+            if (currentPlayers.length >= currentData.currentRoom.maxPlayers) {
                 throw new Error("Sala Cheia");
             }
 
@@ -219,9 +222,11 @@ export const joinRoomDB = async (roomId: string, player: Player, password?: stri
             let updatedPlayers;
             
             if (playerIndex >= 0) {
+                // Player já existe, apenas atualiza
                 updatedPlayers = [...currentPlayers];
-                updatedPlayers[playerIndex] = { ...updatedPlayers[playerIndex], isLocal: false }; 
+                updatedPlayers[playerIndex] = { ...updatedPlayers[playerIndex], ...player, isLocal: false }; 
             } else {
+                // Adiciona novo player
                 updatedPlayers = [...currentPlayers, player];
             }
             
@@ -229,15 +234,20 @@ export const joinRoomDB = async (roomId: string, player: Player, password?: stri
             const cleanPlayers = sanitizeForFirebase(updatedPlayers);
             const normalizedPlayers = normalizePlayersArray(cleanPlayers);
 
-            await update(roomRef, {
+            // Atualiza tanto players raiz quanto currentRoom.players
+            return {
+                ...currentData,
                 players: normalizedPlayers,
-                'currentRoom/players': normalizedPlayers,
+                currentRoom: {
+                    ...currentData.currentRoom,
+                    players: normalizedPlayers
+                },
                 lastActivity: Date.now()
-            });
-            return true;
-        } else {
-            throw new Error("Sala não encontrada");
-        }
+            };
+        });
+        
+        console.log(`✅ Player ${player.name} entrou na sala ${roomId}`);
+        return true;
     } catch (e: any) {
         handleFirebaseError(e);
         throw e;
