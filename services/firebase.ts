@@ -424,8 +424,9 @@ export const cleanupInactiveRooms = async () => {
 export const setupPlayerPresence = (roomId: string, playerId: string) => {
     if (!db) return;
     
-    const playerRef = ref(db, `rooms/${roomId}/players/${playerId}/online`);
-    const roomRef = ref(db, `rooms/${roomId}`);
+    // IMPORTANTE: Não gravar em rooms/{roomId}/players/{playerId} pois isso corrompe o array!
+    // Gravar em uma estrutura separada: rooms/{roomId}/presence/{playerId}
+    const playerRef = ref(db, `rooms/${roomId}/presence/${playerId}/online`);
     
     // Marca como online
     set(playerRef, true);
@@ -435,7 +436,7 @@ export const setupPlayerPresence = (roomId: string, playerId: string) => {
     disconnectRef.set(false);
     
     // Também atualiza lastActivity quando desconectar
-    const activityRef = onDisconnect(ref(db, `rooms/${roomId}/players/${playerId}/lastActivity`));
+    const activityRef = onDisconnect(ref(db, `rooms/${roomId}/presence/${playerId}/lastActivity`));
     activityRef.set(Date.now());
     
     return () => {
