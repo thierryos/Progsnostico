@@ -1,17 +1,17 @@
 
 import { initializeApp } from 'firebase/app';
-import { getDatabase, ref, set, onValue, update, push, remove, get, goOffline } from 'firebase/database';
+import { getDatabase, ref, set, onValue, update, push, remove, get, goOffline, query, orderByChild, equalTo, runTransaction } from 'firebase/database';
 import { GameState, RoomConfig, Player } from '../types';
 
-// Configuração com Fallback: Tenta ler do .env, se falhar, usa as chaves diretas que você forneceu.
+// Configuração Firebase - TODAS as variáveis devem estar no arquivo .env
 const firebaseConfig = {
-  apiKey: process.env.REACT_APP_FIREBASE_API_KEY || "AIzaSyD-rSS3E12l5v0k2hU4xR7gQB2iarDJdOM",
-  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN || "prognostico-game.firebaseapp.com",
-  databaseURL: process.env.REACT_APP_FIREBASE_DATABASE_URL || "https://prognostico-game-default-rtdb.firebaseio.com",
-  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID || "prognostico-game",
-  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET || "prognostico-game.firebasestorage.app",
-  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID || "781327180794",
-  appId: process.env.REACT_APP_FIREBASE_APP_ID || "1:781327180794:web:6b03e669afa3c432a2ba43"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
 let db: any = null;
@@ -23,11 +23,12 @@ try {
         db = getDatabase(app);
         console.log("Firebase conectado com sucesso:", firebaseConfig.databaseURL);
     } else {
-        console.warn("Configuração do Firebase ausente ou inválida. O modo Offline será ativado.");
+        console.warn("Configuração do Firebase ausente ou inválida. Verifique o arquivo .env");
+        connectionError = "Configuração do Firebase ausente. Verifique o arquivo .env";
     }
 } catch (e: any) {
     console.error("Erro na conexão com Firebase:", e);
-    connectionError = "Erro de Configuração.";
+    connectionError = "Erro de Configuração do Firebase.";
 }
 
 // === HELPER PARA LIMPAR DADOS (Remove undefined) ===
@@ -82,15 +83,49 @@ export const subscribeToRoom = (roomId: string, callback: (data: GameState | nul
     return unsubscribe;
 };
 
-export const updateRoomState = (roomId: string, newState: Partial<GameState>) => {
+export const updateRoomState = async (roomId: string, newState: Partial<GameState>) => {
     if (!db) return;
-    const roomRef = ref(db, `rooms/${roomId}`);
-    // Sanitiza antes de enviar para evitar erro de undefined
-    const cleanState = sanitizeForFirebase(newState);
-    
-    update(roomRef, cleanState).catch(err => {
-        handleFirebaseError(err);
+    console.log('📤 [FIREBASE] updateRoomState chamado:', {
+        roomId,
+        status: newState.status,
+        currentTurn: newState.currentTurn,
+        playersCount: newState.players?.length,
+        tableCardsCount: newState.tableCards?.length
     });
+    
+    const roomRef = ref(db, `rooms/${roomId}`);
+    
+    try {
+        // Usa transação para evitar conflitos
+        await runTransaction(roomRef, (currentData) => {
+            if (!currentData) {
+                console.warn('⚠️ [FIREBASE] currentData é null na transação');
+                return currentData;
+            }
+            
+            // Sanitiza e merge com dados existentes
+            const cleanState = sanitizeForFirebase({
+                ...newState,
+                lastActivity: Date.now()
+            });
+            
+            const merged = { ...currentData, ...cleanState };
+            console.log('✅ [FIREBASE] Transação: merge completo');
+            return merged;
+        });
+        console.log('✅ [FIREBASE] Estado atualizado com sucesso');
+    } catch (err) {
+        console.error('❌ [FIREBASE] Erro na transação:', err);
+        // Fallback para update normal se a transação falhar
+        const cleanState = sanitizeForFirebase({
+            ...newState,
+            lastActivity: Date.now()
+        });
+        
+        update(roomRef, cleanState).catch(err => {
+            handleFirebaseError(err);
+        });
+    }
 };
 
 export const formatPlayersForFirebase = (players: Player[]) => {
@@ -103,10 +138,15 @@ export const formatPlayersForFirebase = (players: Player[]) => {
 export const hostCreateRoom = async (roomConfig: RoomConfig, initialState: GameState) => {
     if (!db) throw new Error("Modo Offline Ativo");
     try {
+        const hostId = roomConfig.players.find(p => p.isHost)?.id || 'unknown';
+        
         const cleanData = sanitizeForFirebase({
             ...initialState,
             currentRoom: roomConfig,
-            players: formatPlayersForFirebase(roomConfig.players)
+            players: formatPlayersForFirebase(roomConfig.players),
+            hostId: hostId,
+            createdAt: Date.now(),
+            lastActivity: Date.now()
         });
         
         await set(ref(db, `rooms/${roomConfig.id}`), cleanData);
@@ -116,7 +156,7 @@ export const hostCreateRoom = async (roomConfig: RoomConfig, initialState: GameS
     }
 };
 
-export const joinRoomDB = async (roomId: string, player: Player) => {
+export const joinRoomDB = async (roomId: string, player: Player, password?: string) => {
     if (!db) throw new Error("Servidor Offline");
     
     try {
@@ -126,6 +166,13 @@ export const joinRoomDB = async (roomId: string, player: Player) => {
         if (snapshot.exists()) {
             const data = snapshot.val();
             const currentPlayers = data.players || [];
+            
+            // Validar senha se a sala for privada
+            if (data.currentRoom.isPrivate) {
+                if (!password || password !== data.currentRoom.password) {
+                    throw new Error("Senha incorreta");
+                }
+            }
             
             if (currentPlayers.length >= data.currentRoom.maxPlayers) {
                 throw new Error("Sala Cheia");
@@ -145,7 +192,8 @@ export const joinRoomDB = async (roomId: string, player: Player) => {
 
             await update(roomRef, {
                 players: cleanPlayers,
-                'currentRoom/players': cleanPlayers
+                'currentRoom/players': cleanPlayers,
+                lastActivity: Date.now()
             });
             return true;
         } else {
@@ -184,5 +232,93 @@ export const leaveRoomDB = async (roomId: string, playerId: string) => {
         }
     } catch (e) {
         handleFirebaseError(e);
+    }
+};
+
+export const listOpenRooms = (callback: (rooms: RoomConfig[]) => void) => {
+    if (!db) {
+        callback([]);
+        return () => {};
+    }
+    
+    const roomsRef = ref(db, 'rooms');
+    
+    const unsubscribe = onValue(roomsRef, (snapshot) => {
+        const rooms: RoomConfig[] = [];
+        const now = Date.now();
+        const inactivityThreshold = 5 * 60 * 1000; // 5 minutos
+        
+        if (snapshot.exists()) {
+            const data = snapshot.val();
+            const roomsToDelete: string[] = [];
+            
+            Object.keys(data).forEach(roomId => {
+                const roomData = data[roomId];
+                const lastActivity = roomData.lastActivity || roomData.createdAt || 0;
+                const isInactive = (now - lastActivity) > inactivityThreshold;
+                
+                // Marcar sala para deletar se estiver inativa
+                if (isInactive) {
+                    roomsToDelete.push(roomId);
+                } else if (roomData.currentRoom && roomData.currentRoom.status === 'open') {
+                    rooms.push(roomData.currentRoom);
+                }
+            });
+            
+            // Deletar salas inativas em background
+            if (roomsToDelete.length > 0) {
+                roomsToDelete.forEach(roomId => {
+                    remove(ref(db, `rooms/${roomId}`)).catch(err => 
+                        console.error(`Erro ao remover sala inativa ${roomId}:`, err)
+                    );
+                });
+            }
+        }
+        callback(rooms);
+    }, (error) => {
+        console.error("Error listing rooms:", error);
+        handleFirebaseError(error);
+        callback([]);
+    });
+    
+    return unsubscribe;
+};
+
+// Limpar salas antigas/órfãs manualmente
+export const cleanupInactiveRooms = async () => {
+    if (!db) return 0;
+    
+    try {
+        const roomsRef = ref(db, 'rooms');
+        const snapshot = await get(roomsRef);
+        
+        if (!snapshot.exists()) return 0;
+        
+        const now = Date.now();
+        const inactivityThreshold = 5 * 60 * 1000; // 5 minutos
+        let deletedCount = 0;
+        
+        const data = snapshot.val();
+        const deletePromises: Promise<void>[] = [];
+        
+        Object.keys(data).forEach(roomId => {
+            const roomData = data[roomId];
+            const lastActivity = roomData.lastActivity || roomData.createdAt || 0;
+            const isInactive = (now - lastActivity) > inactivityThreshold;
+            
+            if (isInactive) {
+                deletePromises.push(
+                    remove(ref(db, `rooms/${roomId}`))
+                        .then(() => { deletedCount++; })
+                        .catch(err => console.error(`Erro ao deletar sala ${roomId}:`, err))
+                );
+            }
+        });
+        
+        await Promise.all(deletePromises);
+        return deletedCount;
+    } catch (e) {
+        console.error("Erro na limpeza de salas:", e);
+        return 0;
     }
 };

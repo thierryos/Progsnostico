@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { CRTOverlay } from './components/CRTOverlay';
 import { Sidebar } from './components/Sidebar';
 import { GameArea } from './components/GameArea';
@@ -25,6 +25,9 @@ const App: React.FC = () => {
 
   const [isTutorial, setIsTutorial] = useState(false);
   const [tutorialStep, setTutorialStep] = useState(0);
+  
+  // Ref para evitar múltiplas chamadas de announceTrickWinner
+  const lastAnnouncedTrick = useRef<string>('');
 
   const getInitialState = (): GameState => ({
     status: 'menu',
@@ -44,6 +47,24 @@ const App: React.FC = () => {
   });
 
   const [gameState, setGameState] = useState<GameState>(getInitialState());
+
+  // Log do estado do jogo para debug
+  useEffect(() => {
+      console.log('🎮 [GAME STATE]', {
+          status: gameState.status,
+          currentTurn: gameState.currentTurn,
+          localPlayerId,
+          isMyTurn: gameState.currentTurn === localPlayerId,
+          players: gameState.players.map(p => ({
+              id: p.id,
+              name: p.name,
+              isLocal: p.isLocal,
+              bid: p.currentBid,
+              tricks: p.tricksWon
+          })),
+          tableCards: gameState.tableCards.length
+      });
+  }, [gameState.status, gameState.currentTurn, gameState.players, gameState.tableCards, localPlayerId]);
 
   useEffect(() => {
       if (!isOfflineMode) {
@@ -74,22 +95,55 @@ const App: React.FC = () => {
           }
 
           if (remoteState) {
+              console.log('📥 [FIREBASE] Estado recebido do Firebase:', {
+                  status: remoteState.status,
+                  currentTurn: remoteState.currentTurn,
+                  players: remoteState.players?.map((p: any) => ({ id: p.id, bid: p.currentBid, tricks: p.tricksWon })),
+                  tableCards: remoteState.tableCards?.length || 0
+              });
+              
               const mappedPlayers = (remoteState.players || []).map(p => ({
                   ...p,
                   isLocal: p.id === localPlayerId,
-                  hand: p.hand || []
+                  hand: p.hand || [],
+                  // Firebase remove null, então garantimos que seja null e não undefined
+                  currentBid: p.currentBid === undefined ? null : p.currentBid,
+                  tricksWon: p.tricksWon || 0
               }));
 
-              setGameState(prev => ({
-                  ...remoteState,
-                  players: mappedPlayers,
-                  currentRoom: { ...remoteState.currentRoom!, players: mappedPlayers },
-                  // Ensure arrays are initialized if missing from Firebase (Firebase removes empty arrays)
-                  trickHistory: remoteState.trickHistory || [],
-                  tableCards: remoteState.tableCards || [],
-                  roundSequence: remoteState.roundSequence || [],
-                  deck: remoteState.deck || []
-              }));
+              setGameState(prev => {
+                  // Preserva o estado local APENAS durante a fase de bidding
+                  // Isso evita que bids sejam perdidos por race conditions durante o bidding
+                  // Mas permite que o estado seja atualizado em outras fases (round_end, etc.)
+                  const shouldPreserveBid = prev.status === 'bidding' && remoteState.status === 'bidding';
+                  
+                  if (shouldPreserveBid) {
+                      const localPlayer = prev.players.find(p => p.id === localPlayerId);
+                      const remotePlayer = mappedPlayers.find(p => p.id === localPlayerId);
+                      
+                      // Se o jogador local tem um bid mas o remoto não tem, não sobrescreve ainda
+                      if (localPlayer?.currentBid !== null && localPlayer?.currentBid !== undefined && 
+                          (remotePlayer?.currentBid === null || remotePlayer?.currentBid === undefined)) {
+                          console.log('⏸️ [FIREBASE] Preservando bid local (bidding phase), aguardando sincronização...', { 
+                              localBid: localPlayer.currentBid, 
+                              remoteBid: remotePlayer?.currentBid 
+                          });
+                          return prev;
+                      }
+                  }
+
+                  console.log('✅ [FIREBASE] Aplicando estado remoto');
+                  return {
+                      ...remoteState,
+                      players: mappedPlayers,
+                      currentRoom: { ...remoteState.currentRoom!, players: mappedPlayers },
+                      // Ensure arrays are initialized if missing from Firebase (Firebase removes empty arrays)
+                      trickHistory: remoteState.trickHistory || [],
+                      tableCards: remoteState.tableCards || [],
+                      roundSequence: remoteState.roundSequence || [],
+                      deck: remoteState.deck || []
+                  };
+              });
           } else {
               setGameState(prev => ({ ...getInitialState(), status: 'room_browser' }));
           }
@@ -97,6 +151,48 @@ const App: React.FC = () => {
 
       return () => unsubscribe();
   }, [gameState.currentRoom?.id, localPlayerId, isTutorial, isOfflineMode]);
+
+  // Detecta quando rodada está completa e host precisa anunciar vencedor
+  useEffect(() => {
+      if (isTutorial || isOfflineMode) return;
+      if (gameState.status !== 'playing') return;
+      if (gameState.currentTurn !== '') return; // Só quando currentTurn está vazio
+      if (gameState.tableCards.length === 0) return; // Precisa ter cartas na mesa
+      if (gameState.tableCards.length !== gameState.players.length) return; // Precisa ter todas as cartas
+
+      // Criar ID único para esta rodada (baseado nas cartas jogadas)
+      const trickId = gameState.tableCards
+          .map(tc => `${tc.playerId}-${tc.card.rank}${tc.card.suit}`)
+          .sort()
+          .join('|');
+      
+      // Evita processar a mesma rodada múltiplas vezes
+      if (lastAnnouncedTrick.current === trickId) {
+          console.log('⏭️ [EFFECT] Rodada já processada, ignorando...', { trickId });
+          return;
+      }
+
+      const amIHost = gameState.players.find(p => p.id === localPlayerId)?.isHost ?? false;
+      
+      console.log('🔍 [EFFECT] Rodada completa detectada via Firebase:', { 
+          tableCards: gameState.tableCards.length, 
+          players: gameState.players.length,
+          amIHost,
+          currentTurn: gameState.currentTurn,
+          trickId
+      });
+
+      if (amIHost) {
+          console.log('👑 [EFFECT] Sou o host, anunciando vencedor...');
+          lastAnnouncedTrick.current = trickId; // Marca como processado
+          // Pequeno delay para garantir que todos receberam o estado completo
+          setTimeout(() => {
+              announceTrickWinner(gameState.tableCards, gameState.leadSuit, gameState.players);
+          }, 500);
+      } else {
+          console.log('👤 [EFFECT] Não sou host, aguardando...');
+      }
+  }, [gameState.tableCards, gameState.currentTurn, gameState.status, gameState.players, localPlayerId, isTutorial, isOfflineMode]);
 
   const isHost = () => {
       if (isTutorial) return true;
@@ -108,10 +204,23 @@ const App: React.FC = () => {
   };
 
   const syncState = (newState: Partial<GameState>) => {
+      console.log('🔄 [SYNC] Iniciando syncState:', {
+          status: newState.status,
+          currentTurn: newState.currentTurn,
+          playersUpdate: newState.players?.map(p => ({ id: p.id, bid: p.currentBid, tricksWon: p.tricksWon })),
+          isOnline: isOnline(),
+          roomId: gameState.currentRoom?.id
+      });
+      
       if (isTutorial || isOfflineMode) {
           setGameState(prev => ({ ...prev, ...newState }));
       } else if (isOnline() && gameState.currentRoom && !firebaseError) {
           if (!gameState.currentRoom.id.startsWith('offline-')) {
+             // Atualiza localmente primeiro para resposta imediata
+             console.log('✅ [SYNC] Atualizando estado local primeiro');
+             setGameState(prev => ({ ...prev, ...newState }));
+             // Depois sincroniza com Firebase
+             console.log('📤 [SYNC] Enviando para Firebase...');
              updateRoomState(gameState.currentRoom.id, newState);
           } else {
              setGameState(prev => ({ ...prev, ...newState }));
@@ -287,7 +396,7 @@ const App: React.FC = () => {
     if (isOnline()) {
         try {
             const me: Player = { id: localPlayerId, name: localPlayerName, isLocal: true, hand: [], score: 0, currentBid: null, tricksWon: 0, isHost: false, isReady: false };
-            await joinRoomDB(roomId, me);
+            await joinRoomDB(roomId, me, passwordInput);
             setGameState(prev => ({ ...prev, currentRoom: { ...prev.currentRoom!, id: roomId } })); 
         } catch (e: any) {
             alert(e.message);
@@ -369,11 +478,18 @@ const App: React.FC = () => {
 
   const submitBid = (amount: number) => {
     const playerId = isTutorial ? 'tut-me' : localPlayerId;
-    if (gameState.currentTurn !== playerId) return;
+    console.log('🎲 [BID] submitBid chamado:', { playerId, amount, currentTurn: gameState.currentTurn });
+    
+    if (gameState.currentTurn !== playerId) {
+        console.warn('⚠️ [BID] Não é a vez deste jogador!', { currentTurn: gameState.currentTurn, playerId });
+        return;
+    }
 
     const updatedPlayers = gameState.players.map(p => 
       p.id === playerId ? { ...p, currentBid: amount } : p
     );
+    
+    console.log('👥 [BID] Players atualizados:', updatedPlayers.map(p => ({ id: p.id, bid: p.currentBid })));
     
     if (isTutorial) {
          setGameState(prev => ({
@@ -400,16 +516,24 @@ const App: React.FC = () => {
 
     const nextId = getNextPlayerId(localPlayerId, gameState.players);
     const startPlayerId = gameState.players[gameState.startPlayerIndex].id;
-    const everyoneBid = updatedPlayers.every(p => p.currentBid !== null);
+    const everyoneBid = updatedPlayers.every(p => p.currentBid !== null && p.currentBid !== undefined);
+
+    console.log('🔍 [BID] Verificando se todos fizeram bid:', { 
+        everyoneBid, 
+        bids: updatedPlayers.map(p => ({ id: p.id, bid: p.currentBid })) 
+    });
 
     let nextStatus = gameState.status;
     let nextTurn = nextId;
     let nextLeader = gameState.currentTrickLeader;
 
     if (everyoneBid) {
+        console.log('✅ [BID] Todos fizeram bid! Mudando para "playing"');
         nextStatus = 'playing';
         nextTurn = startPlayerId;
         nextLeader = startPlayerId;
+    } else {
+        console.log('⏳ [BID] Aguardando mais bids, próximo turno:', nextId);
     }
 
     syncState({
@@ -422,7 +546,17 @@ const App: React.FC = () => {
 
   const playCard = (card: Card) => {
     const playerId = isTutorial ? 'tut-me' : localPlayerId;
-    if (gameState.currentTurn !== playerId) return;
+    console.log('🃏 [CARD] playCard chamado:', { 
+        playerId, 
+        card: `${card.rank}${card.suit}`, 
+        currentTurn: gameState.currentTurn,
+        tableCards: gameState.tableCards.length
+    });
+    
+    if (gameState.currentTurn !== playerId) {
+        console.warn('⚠️ [CARD] Não é a vez deste jogador!', { currentTurn: gameState.currentTurn, playerId });
+        return;
+    }
 
     const myPlayer = gameState.players.find(p => p.id === playerId)!;
     const newHand = myPlayer.hand.filter(c => c.id !== card.id);
@@ -433,6 +567,11 @@ const App: React.FC = () => {
     );
     
     const isTrickComplete = newTableCards.length === gameState.players.length;
+    console.log('🃏 [CARD] Estado após jogar:', { 
+        newTableCardsCount: newTableCards.length, 
+        isTrickComplete,
+        totalPlayers: gameState.players.length
+    });
 
     if (isTutorial) {
         if (tutorialStep === 6) {
@@ -500,14 +639,29 @@ const App: React.FC = () => {
     }
 
     if (isTrickComplete) {
+        console.log('🏁 [CARD] Rodada completa! Determinando vencedor...');
         syncState({
             players: updatedPlayers,
             tableCards: newTableCards,
             leadSuit: currentLeadSuit,
             currentTurn: '' 
         });
-        if (isHost()) {
+        
+        // Verifica se é host usando o updatedPlayers ao invés de gameState.players
+        const localPlayer = updatedPlayers.find(p => p.id === localPlayerId);
+        const amIHost = localPlayer?.isHost ?? false;
+        
+        console.log('🎯 [CARD] Verificando host:', { 
+            localPlayerId, 
+            isHost: amIHost,
+            localPlayer: localPlayer ? { id: localPlayer.id, isHost: localPlayer.isHost } : null
+        });
+        
+        if (amIHost) {
+            console.log('👑 [CARD] Sou o host, anunciando vencedor em 800ms...');
             setTimeout(() => announceTrickWinner(newTableCards, currentLeadSuit, updatedPlayers), 800);
+        } else {
+            console.log('👤 [CARD] Não sou host, aguardando anúncio do vencedor...');
         }
     } else {
         syncState({
@@ -520,8 +674,20 @@ const App: React.FC = () => {
   };
 
   const announceTrickWinner = (cards: PlayedCard[], suit: Suit | null, currentPlayers: Player[], advanceTutorial: boolean = true) => {
+    console.log('🏆 [TRICK] announceTrickWinner chamado:', { 
+        cardsCount: cards.length, 
+        trumpCard: gameState.trumpCard,
+        players: currentPlayers.map(p => ({ id: p.id, name: p.name }))
+    });
+    
     const winnerId = determineTrickWinner(cards, gameState.trumpCard);
     const winningCard = cards.find(c => c.playerId === winnerId)?.card!;
+    
+    console.log('🎯 [TRICK] Vencedor determinado:', { 
+        winnerId, 
+        winningCard: winningCard ? `${winningCard.rank}${winningCard.suit}` : null 
+    });
+    
     playSound('win_trick');
     const playersResetReady = currentPlayers.map(p => ({ ...p, isReady: false }));
     

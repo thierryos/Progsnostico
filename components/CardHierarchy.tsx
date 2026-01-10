@@ -16,7 +16,7 @@ export const CardHierarchy: React.FC = () => {
           `}>
             {rank}
           </span>
-          {i < ranks.length - 1 && <span className="text-slate-600 text-[10px]">></span>}
+          {i < ranks.length - 1 && <span className="text-slate-600 text-[10px]">&gt;</span>}
         </React.Fragment>
       ))}
     </div>

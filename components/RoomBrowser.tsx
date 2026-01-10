@@ -4,6 +4,7 @@ import { RoomConfig, Language } from '../types';
 import { Lock, User, Plus, LogIn, ArrowLeft, Info } from 'lucide-react';
 import { playSound } from '../services/soundService';
 import { t } from '../services/i18n';
+import { listOpenRooms, cleanupInactiveRooms } from '../services/firebase';
 
 interface RoomBrowserProps {
   playerName: string;
@@ -14,11 +15,9 @@ interface RoomBrowserProps {
   isOfflineMode: boolean;
 }
 
-const MOCK_ROOMS: RoomConfig[] = [];
-
 export const RoomBrowser: React.FC<RoomBrowserProps> = ({ playerName, lang, onJoinRoom, onCreateRoom, onBack, isOfflineMode }) => {
-  // If offline, default to 'create' view immediately
   const [view, setView] = useState<'list' | 'create'>(isOfflineMode ? 'create' : 'list');
+  const [rooms, setRooms] = useState<RoomConfig[]>([]);
   const [newRoomName, setNewRoomName] = useState(`Mesa de ${playerName}`);
   const [isPrivate, setIsPrivate] = useState(false);
   const [password, setPassword] = useState('');
@@ -36,6 +35,21 @@ export const RoomBrowser: React.FC<RoomBrowserProps> = ({ playerName, lang, onJo
           setRoundsLimit(absoluteMaxCards);
       }
   }, [maxPlayers, absoluteMaxCards, roundsLimit]);
+
+  // Listen to open rooms from Firebase
+  useEffect(() => {
+      if (!isOfflineMode) {
+          // Limpar salas inativas ao abrir o lobby
+          cleanupInactiveRooms().then(count => {
+              if (count > 0) {
+                  console.log(`🧹 ${count} sala(s) inativa(s) removida(s)`);
+              }
+          });
+          
+          const unsubscribe = listOpenRooms(setRooms);
+          return unsubscribe;
+      }
+  }, [isOfflineMode]);
 
   const handleCreate = () => {
     if (isPrivate && !password.trim()) {
@@ -107,7 +121,7 @@ export const RoomBrowser: React.FC<RoomBrowserProps> = ({ playerName, lang, onJo
 
             {view === 'list' && !isOfflineMode ? (
                 <div className="grid grid-cols-1 gap-4 relative z-10">
-                    {MOCK_ROOMS.map(room => {
+                    {rooms.map(room => {
                         const isFull = room.players.length >= room.maxPlayers;
                         const canJoin = !isFull;
                         
@@ -134,7 +148,7 @@ export const RoomBrowser: React.FC<RoomBrowserProps> = ({ playerName, lang, onJo
                             </div>
                         );
                     })}
-                    {MOCK_ROOMS.length === 0 && <div className="text-center text-slate-500 mt-20 text-2xl">Nenhuma sala encontrada. Crie uma!</div>}
+                    {rooms.length === 0 && <div className="text-center text-slate-500 mt-20 text-2xl">Nenhuma sala encontrada. Crie uma!</div>}
                 </div>
             ) : (
                 <div className="max-w-2xl mx-auto bg-slate-800 border-2 border-slate-600 p-8 rounded-xl relative z-10 shadow-lg animate-in zoom-in-95 duration-200">
