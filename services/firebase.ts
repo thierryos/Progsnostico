@@ -31,12 +31,26 @@ try {
     connectionError = "Erro de Configuração do Firebase.";
 }
 
+// === HELPER PARA CONVERTER OBJETOS FIREBASE EM ARRAYS ===
+// Firebase pode converter arrays em objetos quando há buracos nos índices
+const normalizePlayersArray = (players: any): any[] => {
+    if (Array.isArray(players)) {
+        return players;
+    }
+    if (players && typeof players === 'object') {
+        // Converte objeto para array usando Object.values
+        return Object.values(players).filter(p => p !== null && p !== undefined);
+    }
+    return [];
+};
+
 // === HELPER PARA LIMPAR DADOS (Remove undefined) ===
 const sanitizeForFirebase = (data: any): any => {
     if (data === undefined) return null;
     if (data === null) return null;
     if (Array.isArray(data)) {
-        return data.map(sanitizeForFirebase);
+        // Garante que o array não tenha buracos (null/undefined)
+        return data.filter(item => item !== null && item !== undefined).map(sanitizeForFirebase);
     }
     if (typeof data === 'object') {
         const result: any = {};
@@ -73,7 +87,12 @@ export const subscribeToRoom = (roomId: string, callback: (data: GameState | nul
     const roomRef = ref(db, `rooms/${roomId}`);
     
     const unsubscribe = onValue(roomRef, (snapshot) => {
-        callback(snapshot.val());
+        const data = snapshot.val();
+        if (data && data.players) {
+            // Normaliza players para sempre ser array
+            data.players = normalizePlayersArray(data.players);
+        }
+        callback(data);
     }, (error) => {
         console.error("Read error:", error);
         if (handleFirebaseError(error)) {
@@ -262,6 +281,10 @@ export const listOpenRooms = (callback: (rooms: RoomConfig[]) => void) => {
                 if (isInactive) {
                     roomsToDelete.push(roomId);
                 } else if (roomData.currentRoom && roomData.currentRoom.status === 'open') {
+                    // Normaliza players no currentRoom
+                    if (roomData.currentRoom.players) {
+                        roomData.currentRoom.players = normalizePlayersArray(roomData.currentRoom.players);
+                    }
                     rooms.push(roomData.currentRoom);
                 }
             });

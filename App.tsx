@@ -107,15 +107,16 @@ const App: React.FC = () => {
           }
 
           if (remoteState) {
+              // Firebase já normaliza players para array no subscribeToRoom
+              const remotePlayers = remoteState.players || [];
+              
               console.log('📥 [FIREBASE] Estado recebido do Firebase:', {
                   status: remoteState.status,
                   currentTurn: remoteState.currentTurn,
-                  players: Array.isArray(remoteState.players) ? remoteState.players.map((p: any) => ({ id: p.id, bid: p.currentBid, tricks: p.tricksWon })) : 'NOT_ARRAY',
+                  playersCount: remotePlayers.length,
+                  players: remotePlayers.map((p: any) => ({ id: p.id, bid: p.currentBid, tricks: p.tricksWon })),
                   tableCards: remoteState.tableCards?.length || 0
               });
-              
-              // Garante que players é sempre um array
-              const remotePlayers = Array.isArray(remoteState.players) ? remoteState.players : [];
               
               const mappedPlayers = remotePlayers.map(p => ({
                   ...p,
