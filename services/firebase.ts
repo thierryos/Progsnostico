@@ -89,8 +89,18 @@ export const subscribeToRoom = (roomId: string, callback: (data: GameState | nul
     const unsubscribe = onValue(roomRef, (snapshot) => {
         const data = snapshot.val();
         if (data && data.players) {
+            console.log('🔄 [SUBSCRIBE] Dados brutos do Firebase:', {
+                roomId,
+                playersType: Array.isArray(data.players) ? 'array' : typeof data.players,
+                playersRaw: data.players,
+                playersCount: Array.isArray(data.players) ? data.players.length : 'N/A'
+            });
             // Normaliza players para sempre ser array
             data.players = normalizePlayersArray(data.players);
+            console.log('✅ [SUBSCRIBE] Players normalizado:', {
+                playersCount: data.players.length,
+                playerIds: data.players.map((p: any) => p.id)
+            });
         }
         callback(data);
     }, (error) => {
@@ -110,6 +120,7 @@ export const updateRoomState = async (roomId: string, newState: Partial<GameStat
         currentTurn: newState.currentTurn,
         playersCount: newState.players?.length,
         playersIsArray: Array.isArray(newState.players),
+        playersIds: newState.players?.map(p => p.id),
         tableCardsCount: newState.tableCards?.length
     });
     
@@ -122,6 +133,11 @@ export const updateRoomState = async (roomId: string, newState: Partial<GameStat
                 console.warn('⚠️ [FIREBASE] currentData é null na transação');
                 return currentData;
             }
+            
+            console.log('🔄 [UPDATE] Estado atual antes do merge:', {
+                currentPlayersCount: currentData.players?.length,
+                currentPlayerIds: Array.isArray(currentData.players) ? currentData.players.map((p: any) => p.id) : 'NOT_ARRAY'
+            });
             
             // Sanitiza e merge com dados existentes
             const cleanState = sanitizeForFirebase({
@@ -143,7 +159,8 @@ export const updateRoomState = async (roomId: string, newState: Partial<GameStat
             
             console.log('✅ [FIREBASE] Transação: merge completo', {
                 playersCount: merged.players?.length,
-                playersIsArray: Array.isArray(merged.players)
+                playersIsArray: Array.isArray(merged.players),
+                playerIds: merged.players?.map((p: any) => p.id)
             });
             return merged;
         });
@@ -204,6 +221,13 @@ export const joinRoomDB = async (roomId: string, player: Player, password?: stri
                 throw new Error("Sala não encontrada");
             }
             
+            console.log('🚪 [JOIN] Transação iniciada:', {
+                roomId,
+                playerJoining: player.id,
+                currentPlayersType: Array.isArray(currentData.players) ? 'array' : typeof currentData.players,
+                currentPlayersCount: Array.isArray(currentData.players) ? currentData.players.length : 'N/A'
+            });
+            
             // Garante que players seja sempre um array
             const currentPlayers = Array.isArray(currentData.players) ? currentData.players : [];
             
@@ -233,6 +257,13 @@ export const joinRoomDB = async (roomId: string, player: Player, password?: stri
             // Sanitiza e garante que seja array compacto sem buracos
             const cleanPlayers = sanitizeForFirebase(updatedPlayers);
             const normalizedPlayers = normalizePlayersArray(cleanPlayers);
+            
+            console.log('✅ [JOIN] Players atualizado:', {
+                roomId,
+                playerJoined: player.id,
+                finalCount: normalizedPlayers.length,
+                playerIds: normalizedPlayers.map((p: any) => p.id)
+            });
 
             // Atualiza tanto players raiz quanto currentRoom.players
             return {
@@ -406,22 +437,37 @@ export const setupPlayerPresence = (roomId: string, playerId: string) => {
 export const removePlayerFromRoom = async (roomId: string, playerId: string) => {
     if (!db) return;
     
+    console.log('🚪 [REMOVE] Tentando remover player:', { roomId, playerId });
+    
     try {
         const roomRef = ref(db, `rooms/${roomId}`);
         const snapshot = await get(roomRef);
         
-        if (!snapshot.exists()) return;
+        if (!snapshot.exists()) {
+            console.log('⚠️ [REMOVE] Sala não existe mais');
+            return;
+        }
         
         const roomData = snapshot.val();
         let players = roomData.currentRoom?.players;
         
         // Garante que players é um array
         if (!Array.isArray(players)) {
-            console.warn(`Players não é array para sala ${roomId}`, players);
+            console.warn(`⚠️ [REMOVE] Players não é array para sala ${roomId}`, players);
             return;
         }
         
+        console.log('🔍 [REMOVE] Players atuais:', {
+            count: players.length,
+            playerIds: players.map((p: Player) => p.id)
+        });
+        
         const updatedPlayers = players.filter((p: Player) => p.id !== playerId);
+        
+        console.log('✂️ [REMOVE] Players após remoção:', {
+            count: updatedPlayers.length,
+            playerIds: updatedPlayers.map((p: Player) => p.id)
+        });
         
         // Se não sobrou ninguém, deleta a sala
         if (updatedPlayers.length === 0) {
