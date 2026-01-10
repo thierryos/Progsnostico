@@ -22,11 +22,13 @@ interface GameAreaProps {
 }
 
 export const GameArea: React.FC<GameAreaProps> = ({ gameState, lang, tutorialHighlight, isTutorial, onPlayCard, onBid, onReadyNextTrick, onLeave, onTutorialAction }) => {
-  const localPlayer = gameState.players.find(p => p.isLocal);
+  // Garante que players é sempre um array
+  const players = Array.isArray(gameState.players) ? gameState.players : [];
+  const localPlayer = players.find(p => p.isLocal);
   const isSpectating = localPlayer?.hand.length === 0 && (gameState.status === 'playing' || gameState.status === 'bidding');
   const isPlayerTurn = (gameState.currentTurn === localPlayer?.id) && !isSpectating;
   const isBiddingPhase = gameState.status === 'bidding';
-  const opponents = gameState.players.filter(p => !p.isLocal);
+  const opponents = players.filter(p => !p.isLocal);
 
   const [showHistory, setShowHistory] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
@@ -67,7 +69,7 @@ export const GameArea: React.FC<GameAreaProps> = ({ gameState, lang, tutorialHig
     return isValidMove(card, localPlayer.hand, gameState.leadSuit);
   };
 
-  const getPlayerName = (id: string) => gameState.players.find(p => p.id === id)?.name || '???';
+  const getPlayerName = (id: string) => players.find(p => p.id === id)?.name || '???';
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const val = parseFloat(e.target.value);
@@ -119,10 +121,12 @@ export const GameArea: React.FC<GameAreaProps> = ({ gameState, lang, tutorialHig
   };
 
   const getTableCardStyle = (playerId: string, cardId: string) => {
-     const playerIndex = gameState.players.findIndex(p => p.id === playerId);
-     const localIdx = gameState.players.findIndex(p => p.isLocal);
-     const relativeIdx = (playerIndex - localIdx + gameState.players.length) % gameState.players.length;
-     const total = gameState.players.length;
+     // Garante que players é um array antes de usar findIndex
+     const players = Array.isArray(gameState.players) ? gameState.players : [];
+     const playerIndex = players.findIndex(p => p.id === playerId);
+     const localIdx = players.findIndex(p => p.isLocal);
+     const relativeIdx = (playerIndex - localIdx + players.length) % players.length;
+     const total = players.length;
      
      const angle = 90 + (360 / total) * relativeIdx;
      const radian = (angle * Math.PI) / 180;

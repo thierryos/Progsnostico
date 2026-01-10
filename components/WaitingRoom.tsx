@@ -27,11 +27,13 @@ export const WaitingRoom: React.FC<WaitingRoomProps> = ({
   onToggleReady,
   onUpdateSettings
 }) => {
-  const isHost = room.players.find(p => p.id === localPlayerId)?.isHost;
-  const localPlayer = room.players.find(p => p.id === localPlayerId);
+  // Garante que players é um array
+  const players = Array.isArray(room.players) ? room.players : [];
+  const isHost = players.find(p => p.id === localPlayerId)?.isHost;
+  const localPlayer = players.find(p => p.id === localPlayerId);
   const [copied, setCopied] = useState(false);
 
-  const sequence = calculateRoundSequence(room.players.length || 2, room.gameMode, room.maxHandSize);
+  const sequence = calculateRoundSequence(players.length || 2, room.gameMode, room.maxHandSize);
   const totalRounds = sequence.length;
 
   const copyInvite = () => {
@@ -41,10 +43,10 @@ export const WaitingRoom: React.FC<WaitingRoomProps> = ({
     playSound('flip');
   };
 
-  const allReady = room.players.every(p => p.isReady);
+  const allReady = players.every(p => p.isReady);
 
   // Helper for max cards change
-  const currentAbsoluteMax = Math.floor(52 / room.players.length);
+  const currentAbsoluteMax = Math.floor(52 / players.length);
 
   // Ensure current setting doesn't exceed absolute max automatically
   const safeMaxHandSize = room.maxHandSize && room.maxHandSize > 0 
@@ -111,7 +113,7 @@ export const WaitingRoom: React.FC<WaitingRoomProps> = ({
                     {isHost ? (
                         <input 
                             type="range" 
-                            min={Math.max(2, room.players.length)} 
+                            min={Math.max(2, players.length)} 
                             max="7"
                             value={room.maxPlayers}
                             onChange={(e) => handleMaxPlayersChange(parseInt(e.target.value))}
@@ -147,7 +149,7 @@ export const WaitingRoom: React.FC<WaitingRoomProps> = ({
                 <div className="grid grid-cols-2 gap-4 border-t border-slate-700 pt-2">
                     <div>
                         <div className="text-slate-400 text-sm uppercase">Jogadores</div>
-                        <div className="text-white text-xl">{room.players.length} / {room.maxPlayers}</div>
+                        <div className="text-white text-xl">{players.length} / {room.maxPlayers}</div>
                     </div>
                     <div>
                          <div className="text-slate-400 text-sm uppercase">Total Rodadas</div>
@@ -169,11 +171,11 @@ export const WaitingRoom: React.FC<WaitingRoomProps> = ({
                 <h2 className="text-slate-400 uppercase tracking-widest flex items-center gap-4">
                     <span>Jogadores</span>
                     <span className={`text-sm font-bold ${allReady ? 'text-green-500' : 'text-yellow-500'}`}>
-                        {room.players.filter(p => p.isReady).length} / {room.players.length} Prontos
+                        {players.filter(p => p.isReady).length} / {players.length} Prontos
                     </span>
                 </h2>
                 
-                {isHost && room.players.length < room.maxPlayers && (
+                {isHost && players.length < room.maxPlayers && (
                     <button 
                         onClick={() => { playSound('bid'); onAddBot(); }}
                         className="bg-slate-700 text-white px-4 py-2 rounded text-sm hover:bg-balatro-gold hover:text-black transition-colors flex items-center gap-2 font-bold uppercase shadow-lg border border-slate-500"
@@ -185,7 +187,7 @@ export const WaitingRoom: React.FC<WaitingRoomProps> = ({
 
             <div className="flex-1 overflow-y-auto p-4 lg:p-8 custom-scrollbar">
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pb-20 lg:pb-0">
-                    {room.players.map(p => (
+                    {players.map(p => (
                         <div key={p.id} className={`
                             aspect-[3/4] border-4 rounded-xl flex flex-col items-center justify-center relative animate-in zoom-in duration-300 group shadow-lg
                             ${p.isReady ? 'border-green-600 bg-green-900/20' : 'border-slate-600 bg-slate-800'}
@@ -217,7 +219,7 @@ export const WaitingRoom: React.FC<WaitingRoomProps> = ({
                         </div>
                     ))}
 
-                    {Array.from({ length: Math.max(0, room.maxPlayers - room.players.length) }).map((_, i) => (
+                    {Array.from({ length: Math.max(0, room.maxPlayers - players.length) }).map((_, i) => (
                         <div key={`empty-${i}`} className="aspect-[3/4] border-4 border-dashed border-slate-700 rounded-xl flex flex-col items-center justify-center opacity-30">
                             <div className="text-slate-500 text-sm mb-2 uppercase font-bold">Vazio</div>
                         </div>
@@ -245,7 +247,7 @@ export const WaitingRoom: React.FC<WaitingRoomProps> = ({
                 {isHost && (
                     <button 
                         onClick={() => { playSound('round_end'); onStartGame(); }}
-                        disabled={!allReady || room.players.length < 2}
+                        disabled={!allReady || players.length < 2}
                         className="w-full sm:w-auto bg-balatro-red text-white text-lg lg:text-2xl py-3 px-12 rounded-xl border-b-8 border-red-900 hover:brightness-110 active:border-b-0 active:translate-y-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 uppercase font-bold"
                     >
                         <Play fill="currentColor" /> Iniciar

@@ -165,7 +165,8 @@ export const joinRoomDB = async (roomId: string, player: Player, password?: stri
         
         if (snapshot.exists()) {
             const data = snapshot.val();
-            const currentPlayers = data.players || [];
+            // Garante que players seja sempre um array
+            const currentPlayers = Array.isArray(data.players) ? data.players : [];
             
             // Validar senha se a sala for privada
             if (data.currentRoom.isPrivate) {

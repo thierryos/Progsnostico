@@ -48,14 +48,26 @@ const App: React.FC = () => {
 
   const [gameState, setGameState] = useState<GameState>(getInitialState());
 
+  // Garantir que players sempre seja um array
+  useEffect(() => {
+      if (!Array.isArray(gameState.players)) {
+          console.error('❌ gameState.players não é um array!', gameState.players);
+          setGameState(prev => ({
+              ...prev,
+              players: []
+          }));
+      }
+  }, [gameState.players]);
+
   // Log do estado do jogo para debug
   useEffect(() => {
+      const safePlayers = Array.isArray(gameState.players) ? gameState.players : [];
       console.log('🎮 [GAME STATE]', {
           status: gameState.status,
           currentTurn: gameState.currentTurn,
           localPlayerId,
           isMyTurn: gameState.currentTurn === localPlayerId,
-          players: gameState.players.map(p => ({
+          players: safePlayers.map(p => ({
               id: p.id,
               name: p.name,
               isLocal: p.isLocal,
@@ -98,11 +110,14 @@ const App: React.FC = () => {
               console.log('📥 [FIREBASE] Estado recebido do Firebase:', {
                   status: remoteState.status,
                   currentTurn: remoteState.currentTurn,
-                  players: remoteState.players?.map((p: any) => ({ id: p.id, bid: p.currentBid, tricks: p.tricksWon })),
+                  players: Array.isArray(remoteState.players) ? remoteState.players.map((p: any) => ({ id: p.id, bid: p.currentBid, tricks: p.tricksWon })) : 'NOT_ARRAY',
                   tableCards: remoteState.tableCards?.length || 0
               });
               
-              const mappedPlayers = (remoteState.players || []).map(p => ({
+              // Garante que players é sempre um array
+              const remotePlayers = Array.isArray(remoteState.players) ? remoteState.players : [];
+              
+              const mappedPlayers = remotePlayers.map(p => ({
                   ...p,
                   isLocal: p.id === localPlayerId,
                   hand: p.hand || [],
@@ -112,13 +127,16 @@ const App: React.FC = () => {
               }));
 
               setGameState(prev => {
+                  // Garante que prev.players é array
+                  const prevPlayers = Array.isArray(prev.players) ? prev.players : [];
+                  
                   // Preserva o estado local APENAS durante a fase de bidding
                   // Isso evita que bids sejam perdidos por race conditions durante o bidding
                   // Mas permite que o estado seja atualizado em outras fases (round_end, etc.)
                   const shouldPreserveBid = prev.status === 'bidding' && remoteState.status === 'bidding';
                   
                   if (shouldPreserveBid) {
-                      const localPlayer = prev.players.find(p => p.id === localPlayerId);
+                      const localPlayer = prevPlayers.find(p => p.id === localPlayerId);
                       const remotePlayer = mappedPlayers.find(p => p.id === localPlayerId);
                       
                       // Se o jogador local tem um bid mas o remoto não tem, não sobrescreve ainda
@@ -220,7 +238,8 @@ const App: React.FC = () => {
       if (isOfflineMode || gameState.currentRoom.id === 'offline-room' || gameState.currentRoom.id.startsWith('offline-')) {
           return true;
       }
-      return gameState.players.find(p => p.id === localPlayerId)?.isHost ?? false;
+      const players = Array.isArray(gameState.players) ? gameState.players : [];
+      return players.find(p => p.id === localPlayerId)?.isHost ?? false;
   };
 
   const syncState = (newState: Partial<GameState>) => {
@@ -772,8 +791,12 @@ const App: React.FC = () => {
   };
 
   const getNextPlayerId = (currentId: string, players: Player[]) => {
-    const idx = players.findIndex(p => p.id === currentId);
-    return players[(idx + 1) % players.length].id;
+    // Garante que players é um array
+    const safePlayers = Array.isArray(players) ? players : [];
+    if (safePlayers.length === 0) return currentId;
+    
+    const idx = safePlayers.findIndex(p => p.id === currentId);
+    return safePlayers[(idx + 1) % safePlayers.length].id;
   };
 
   const handleKickPlayer = (pid: string) => {
