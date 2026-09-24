@@ -9,4 +9,7 @@ export const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
+/** `host:porta` do emulador local do Realtime Database (ex.: `127.0.0.1:9000`). */
+export const emulatorHost = import.meta.env.VITE_FIREBASE_EMULATOR_HOST;
+
 export const hasFirebaseConfig = () => Boolean(firebaseConfig.apiKey && firebaseConfig.databaseURL);

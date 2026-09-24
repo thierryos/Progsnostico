@@ -6,7 +6,11 @@ import * as net from './firebase';
 
 vi.mock('firebase/app', () => import('./fake/app'));
 vi.mock('firebase/database', () => import('./fake/database'));
-vi.mock('./config', () => ({ firebaseConfig: {}, hasFirebaseConfig: () => true }));
+vi.mock('./config', () => ({
+  firebaseConfig: {},
+  hasFirebaseConfig: () => true,
+  emulatorHost: undefined,
+}));
 
 const ana = { id: 'ana', name: 'Ana' };
 const bia = { id: 'bia', name: 'Bia' };

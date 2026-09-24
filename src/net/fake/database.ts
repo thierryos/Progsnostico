@@ -212,9 +212,12 @@ if (typeof window !== 'undefined') {
 // ---------------------------------------------------------------------------
 
 export type Database = { fake: true };
+export type DataSnapshot = Snapshot;
+export type { Query };
 
 export const getDatabase = (): Database => ({ fake: true });
 export const goOffline = () => {};
+export const connectDatabaseEmulator = () => {};
 export const serverTimestamp = () => TIMESTAMP;
 
 export const ref = (_db: Database, path = ''): Ref => ({ kind: 'ref', path });
@@ -258,16 +261,23 @@ export const runTransaction = async (r: Ref, fn: (current: any) => any) => {
 
 export const onValue = (
   target: Target,
-  cb: (snap: Snapshot) => void,
+  callback: (snap: Snapshot) => void,
   _onError?: (e: Error) => void,
+  options?: { onlyOnce?: boolean },
 ) => {
   if (target.path === '.info/connected') {
-    queueMicrotask(() => cb(makeSnapshot('.info/connected', true)));
+    queueMicrotask(() => callback(makeSnapshot('.info/connected', true)));
     return () => {};
   }
-  const listener: Listener = { target, cb };
+  const listener: Listener = {
+    target,
+    cb: (snap) => {
+      if (options?.onlyOnce) listeners.delete(listener);
+      callback(snap);
+    },
+  };
   listeners.add(listener);
-  void ready.then(() => listeners.has(listener) && cb(evaluate(target)));
+  void ready.then(() => listeners.has(listener) && listener.cb(evaluate(target)));
   return () => {
     listeners.delete(listener);
   };

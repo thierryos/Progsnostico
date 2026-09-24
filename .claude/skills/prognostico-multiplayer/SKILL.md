@@ -19,6 +19,9 @@ rooms/{CODIGO}/presence/{playerId}  true enquanto conectado (onDisconnect remove
 
 - A lista de salas consulta **só** `meta` (`orderByChild('meta/status')`). Precisa de
   `".indexOn": ["meta/status", "meta/lastActivity"]` em `rooms` nas regras do banco.
+- Regras recomendadas: `firebase-rules.json` (local, fora do git). Qualquer campo novo em `meta`,
+  filho novo em `rooms/{id}` ou novo formato de código de sala exige atualizar as regras.
+- Leitura única de consulta: use `readOnce` (onValue + onlyOnce), nunca `get()` em consulta.
 - Salas sem atividade por 10 min são apagadas por `cleanupStaleRooms` (inclui formato antigo).
 
 ## Fluxo de uma ação
@@ -58,6 +61,11 @@ estado = default novo aqui + caso no `serialize.test.ts`.
   abra duas abas para simular dois jogadores, ou use o fluxo `online` do script de screenshots
   (skill `prognostico-mobile-ui`).
 - Se o banco falso não suportar uma API nova do SDK, implemente-a lá (mesma assinatura).
+- **SDK real + regras**: `npm run test:emulator` (Java 11+) roda `src/net/firebase.emulator.test.ts`
+  contra o emulador com `firebase-rules.json`. No navegador: `npm run emulator` e
+  `npm run dev:emulator`. O banco falso já escondeu um bug real (`get()` de consulta sem índice
+  volta vazio) — mudança em consulta, transação ou regra **precisa** passar no emulador.
+- O emulador aplica as regras ao namespace `demo-prognostico-default-rtdb`.
 
 ## Segurança (limites conhecidos)
 

@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "dev:fake": "vite --mode fakedb",
+    "dev:emulator": "vite --mode emulator",
+    "emulator": "npx --yes firebase-tools@15 emulators:start --only database --project demo-prognostico",
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
@@ -14,6 +16,7 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:emulator": "npx --yes firebase-tools@15 emulators:exec --only database --project demo-prognostico \"vitest run src/net/firebase.emulator.test.ts\"",
     "check": "npm run typecheck && npm run lint && npm run format:check && npm test && npm run build",
     "deploy": "npm run build && gh-pages -d dist"
   },

@@ -31,14 +31,16 @@ cp .env.example .env      # preencha com as credenciais do Firebase
 npm run dev               # http://localhost:3000/Progsnostico/
 ```
 
-| Script             | O que faz                                                               |
-| ------------------ | ----------------------------------------------------------------------- |
-| `npm run dev`      | Servidor de desenvolvimento (Firebase real do `.env`)                   |
-| `npm run dev:fake` | Multiplayer **sem Firebase**: banco em memória compartilhado entre abas |
-| `npm test`         | Testes (motor de regras, serialização, adaptador Firebase, layout)      |
-| `npm run lint`     | ESLint                                                                  |
-| `npm run format`   | Prettier                                                                |
-| `npm run check`    | Tudo acima + typecheck + build (o mesmo que o CI roda)                  |
+| Script                                      | O que faz                                                               |
+| ------------------------------------------- | ----------------------------------------------------------------------- |
+| `npm run dev`                               | Servidor de desenvolvimento (Firebase real do `.env`)                   |
+| `npm run dev:fake`                          | Multiplayer **sem Firebase**: banco em memória compartilhado entre abas |
+| `npm run emulator` + `npm run dev:emulator` | SDK real contra o emulador local do Firebase (Java 11+)                 |
+| `npm run test:emulator`                     | Testa o adaptador e as regras (`firebase-rules.json`) no emulador       |
+| `npm test`                                  | Testes (motor de regras, serialização, adaptador Firebase, layout)      |
+| `npm run lint`                              | ESLint                                                                  |
+| `npm run format`                            | Prettier                                                                |
+| `npm run check`                             | Tudo acima + typecheck + build (o mesmo que o CI roda)                  |
 
 > 💡 Para testar o online sem mexer no banco de produção, use `npm run dev:fake` e abra duas abas.
 
@@ -65,17 +67,9 @@ src/
 
 ### Regras do Realtime Database
 
-Adicione o índice abaixo nas regras do banco para a lista de salas não baixar as partidas inteiras:
-
-```json
-{
-  "rules": {
-    "rooms": {
-      ".indexOn": ["meta/status", "meta/lastActivity"]
-    }
-  }
-}
-```
+Veja a seção "Regras do Realtime Database" em [DEPLOY.md](DEPLOY.md): as regras recomendadas
+(`firebase-rules.json`, local) incluem o índice `meta/status` + `meta/lastActivity` da lista de
+salas e validam os dados gravados. Teste com `npm run test:emulator` antes de publicar.
 
 ⚠️ Sem Firebase Auth, qualquer cliente consegue ler o estado completo da partida (inclusive as
 mãos). Para um jogo casual entre amigos isso é aceitável; para impedir trapaças seria preciso

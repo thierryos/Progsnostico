@@ -14,6 +14,7 @@
  */
 import { initializeApp } from 'firebase/app';
 import {
+  connectDatabaseEmulator,
   endAt,
   equalTo,
   get,
@@ -29,7 +30,9 @@ import {
   serverTimestamp,
   set,
   update,
+  type DataSnapshot,
   type Database,
+  type Query,
 } from 'firebase/database';
 import { createGame, humanPlayers, reduce } from '../game/engine';
 import {
@@ -41,7 +44,7 @@ import {
   type RoomSettings,
 } from '../game/types';
 import { randomRoomCode } from '../lib/ids';
-import { firebaseConfig, hasFirebaseConfig } from './config';
+import { emulatorHost, firebaseConfig, hasFirebaseConfig } from './config';
 import { deserializeGame, serializeGame } from './serialize';
 
 export type RoomStatus = 'open' | 'playing' | 'finished';
@@ -70,6 +73,10 @@ const getDb = (): Database => {
   if (!db) {
     if (!hasFirebaseConfig()) throw new Error('Configuração do Firebase ausente (.env).');
     db = getDatabase(initializeApp(firebaseConfig));
+    if (emulatorHost) {
+      const [host, port] = emulatorHost.split(':');
+      connectDatabaseEmulator(db, host, Number(port));
+    }
   }
   return db;
 };
@@ -330,10 +337,19 @@ export const subscribeOpenRooms = (cb: (rooms: RoomSummary[]) => void) =>
     },
   );
 
+/**
+ * Leitura única de uma consulta. Usa `onValue` em vez de `get()`: sem o `.indexOn` nas regras,
+ * o `get()` de consultas filtradas no cliente volta vazio (verificado no emulador).
+ */
+const readOnce = (target: Query) =>
+  new Promise<DataSnapshot>((resolve, reject) => {
+    onValue(target, resolve, reject, { onlyOnce: true });
+  });
+
 /** Apaga salas abandonadas (inclusive as do formato antigo, sem `meta`). */
 export const cleanupStaleRooms = async () => {
   try {
-    const snap = await get(
+    const snap = await readOnce(
       query(
         ref(getDb(), 'rooms'),
         orderByChild('meta/lastActivity'),

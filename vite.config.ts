@@ -35,5 +35,9 @@ export default defineConfig(({ mode }) => ({
   test: {
     environment: 'node',
     include: ['src/**/*.test.ts'],
+    // Testes do emulador só rodam via `npm run test:emulator` (que define esta variável).
+    exclude: process.env.FIREBASE_DATABASE_EMULATOR_HOST
+      ? ['node_modules/**']
+      : ['node_modules/**', 'src/**/*.emulator.test.ts'],
   },
 }));
