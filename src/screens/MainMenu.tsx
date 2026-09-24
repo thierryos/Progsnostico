@@ -168,7 +168,7 @@ export const MainMenu = ({
         </form>
       </div>
 
-      <footer className="pt-4 text-sm text-slate-400/70">v1.1.0 · Firebase</footer>
+      <footer className="pt-4 text-sm text-slate-400/70">v1.2.0 · Firebase</footer>
 
       {showSettings && <SettingsSheet onClose={() => setShowSettings(false)} />}
     </div>

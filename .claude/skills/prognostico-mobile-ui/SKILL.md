@@ -44,22 +44,22 @@ adapte para `short:` (celular deitado), `sm:`, `lg:` (desktop com placar lateral
   tipados e o TypeScript acusa chave faltando).
 - Respeite `prefers-reduced-motion` (já global) — animações só com classes `animate-*`.
 
-## Pós-processamento (identidade "tela de fliperama")
+## Pós-processamento (efeitos de tela)
 
-- `components/fx/SwirlBackground.tsx`: shader WebGL em baixa resolução (1 px de shader = 5 px de
-  CSS, `image-rendering: pixelated`, 24 fps). Só anima no menu/lista de salas; na mesa congela.
-  Fora do menu principal o `App` põe um véu escuro por cima — **conteúdo nunca direto sobre o
-  redemoinho**; use painéis/fundos com opacidade ≥ 85%.
-- `components/fx/CrtOverlay.tsx`: scanlines + granulado + vinheta + reflexo, só CSS, z-80.
-  Animações dele só com `transform` (compositor), nunca `background-position` em tela cheia.
-- `.crt-text` aplica aberração cromática em títulos quando o CRT está ligado
-  (`[data-crt='on']`, definido por `lib/settings.tsx`). Use só em títulos.
-- `font-display` (Jersey 10) é **restrita**: título do menu, manchete de fim de jogo e marca
-  d'água da mesa. O resto é `font-pixel` (VT323).
-- Tudo pode ser desligado em Configurações (`useSettings()`: `crt`, `motion`); respeite essas
-  flags em qualquer efeito novo e não crie efeito que atrapalhe a leitura de cartas/pontos.
-- Brilho (`shine`) e `animate-pop` são para momentos de resultado (vaza vencida, pontos), não
-  para decoração constante.
+- Níveis em Configurações (`useSettings().screenFx`): `off`, `soft` (padrão) e `retro`.
+  O atributo `data-fx` no `<html>` controla os títulos `.crt-text` (brilho no Suave,
+  aberração cromática no Retrô).
+- `components/fx/ScreenFx.tsx` (z-80, sem toques): Suave = vinheta + granulado fino + luz quente;
+  Retrô = Suave + linhas de TV com **perfil suave** (`crt-scanlines`). **Nunca** use linhas com
+  borda dura de 1px: em telas 2,6x/2,75x (Android) elas viram listras irregulares sobre as cartas.
+- `components/fx/SwirlBackground.tsx`: shader liso em 1/3 da resolução com dithering (sem faixas).
+  Anima só nos menus; na mesa congela. Fora do menu principal há um véu escuro por cima —
+  conteúdo nunca direto sobre o redemoinho.
+- Mesa: madeira com relevo, feltro com `felt-fibers` e foco de luz central.
+- `components/fx/WinBurst.tsx` (faíscas + "+1") e `shine` na carta vencedora; `animate-glow-pulse`
+  para chamar atenção (sua vez). Efeitos só em momentos de resultado, não como decoração constante.
+- `font-display` (Jersey 10) é restrita: título, manchete de fim de jogo, marca d'água, "+1".
+- Animações só com `transform`/`opacity`/`box-shadow` locais; nada de filtro em tela cheia.
 
 ## Verificação visual (obrigatória para mudanças de UI)
 
@@ -79,5 +79,5 @@ adapte para `short:` (celular deitado), `sm:`, `lg:` (desktop com placar lateral
 - [ ] Botões ≥ 40px e com texto legível; nada depende de hover.
 - [ ] Modais roláveis quando o conteúdo é maior que a tela.
 - [ ] Desktop: placar lateral visível, mesa sem esticar demais.
-- [ ] Textos legíveis com o CRT ligado (scanlines não podem apagar números pequenos).
+- [ ] Sem listras sobre as cartas no modo Suave; no Retrô, textos pequenos continuam legíveis.
 - [ ] O script terminou com `0 erro(s)` (erros de console contam).

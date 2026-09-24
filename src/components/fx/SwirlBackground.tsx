@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
-/** Cada "pixel" do shader ocupa PIXEL × PIXEL px de CSS: barato e com cara de pixel art. */
-const PIXEL = 5;
+/** Resolução reduzida (1 px do shader = 3 px de CSS), ampliada com suavização: barato e liso. */
+const PIXEL = 3;
 const FPS = 24;
 
 const VERTEX = `
@@ -10,8 +10,8 @@ void main() { gl_Position = vec4(aPos, 0.0, 1.0); }
 `;
 
 /**
- * Redemoinho de tinta: coordenadas polares torcidas + distorção de domínio,
- * nas cores do feltro, vinho e um brilho dourado. Posterizado para parecer pixel art.
+ * Redemoinho de tinta: coordenadas polares torcidas + distorção de domínio, nas cores do
+ * feltro, vinho e um brilho dourado. Um ruído mínimo (dithering) evita faixas de cor.
  */
 const FRAGMENT = `
 precision mediump float;
@@ -41,7 +41,8 @@ void main() {
   col = mix(col, WINE, smoothstep(0.62, 0.95, 1.0 - band) * 0.85);
   col += GOLD * smoothstep(0.94, 1.0, glint) * 0.28;
   col *= 1.0 - 0.45 * smoothstep(0.35, 1.25, r);
-  col = floor(col * 10.0 + 0.5) / 10.0;
+  float dither = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453);
+  col += (dither - 0.5) / 96.0;
   gl_FragColor = vec4(col, 1.0);
 }
 `;
@@ -146,7 +147,7 @@ export const SwirlBackground = ({ animate }: { animate: boolean }) => {
     <canvas
       ref={canvasRef}
       aria-hidden
-      className="pointer-events-none absolute inset-0 h-full w-full [image-rendering:pixelated]"
+      className="pointer-events-none absolute inset-0 h-full w-full"
     />
   );
 };

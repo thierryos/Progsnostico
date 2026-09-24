@@ -45,7 +45,7 @@ export const PlayerBar = ({ game, me, hint }: PlayerBarProps) => {
   } else if (myTurn) {
     status = (
       <span className="flex flex-col items-center leading-tight">
-        <span className="animate-pulse rounded-full bg-balatro-gold px-3 text-xl text-black">
+        <span className="animate-glow-pulse rounded-full bg-balatro-gold px-3 text-xl text-black">
           {leading ? (
             <span className="flex items-center gap-1">
               <Flag size={14} fill="currentColor" /> {t('youStart')}
@@ -102,7 +102,7 @@ export const BidPanel = ({ game, me, onBid }: BidPanelProps) => {
 
   return (
     <div className="mx-auto w-full max-w-2xl shrink-0 px-2 pb-1">
-      <div className="rounded-2xl border-2 border-balatro-gold bg-slate-900/95 p-2.5 shadow-[0_0_30px_rgb(0_0_0/0.6)] animate-in slide-in-from-bottom-4 fade-in short:flex short:items-center short:gap-3 short:p-1.5">
+      <div className="rounded-2xl border-2 border-balatro-gold bg-slate-900/95 p-2.5 shadow-[0_0_30px_rgb(0_0_0/0.6),0_0_22px_rgb(234_179_8/0.18)] animate-in slide-in-from-bottom-4 fade-in short:flex short:items-center short:gap-3 short:p-1.5">
         <div className="flex flex-wrap items-baseline justify-between gap-x-3">
           <h2 className="text-2xl text-balatro-gold uppercase short:text-lg">{t('bidPrompt')}</h2>
           <span className="text-base text-slate-400">
@@ -141,7 +141,7 @@ export const TrickSummaryPanel = ({ game, me, onReady }: TrickSummaryPanelProps)
 
   return (
     <div id="trick-summary" className="mx-auto w-full max-w-2xl shrink-0 px-2 pb-1">
-      <div className="flex items-center gap-3 rounded-2xl border-2 border-balatro-gold bg-slate-900/95 p-2.5 animate-in slide-in-from-bottom-4 fade-in short:p-1.5">
+      <div className="flex items-center gap-3 rounded-2xl border-2 border-balatro-gold bg-slate-900/95 p-2.5 shadow-[0_0_22px_rgb(234_179_8/0.18)] animate-in slide-in-from-bottom-4 fade-in short:p-1.5">
         <Trophy className="shrink-0 text-balatro-gold short:hidden" size={32} />
         <div className="min-w-0 flex-1 leading-tight">
           <div className="text-sm tracking-widest text-slate-400 uppercase">{t('trickWinner')}</div>

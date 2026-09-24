@@ -9,10 +9,17 @@ import {
 } from 'react';
 import { storage } from './storage';
 
-/** Preferências visuais (pós-processamento), salvas no aparelho. */
+/**
+ * Pós-processamento de tela:
+ * - `off`: nenhum efeito;
+ * - `soft`: vinheta, granulado de filme, luz quente e brilho nos destaques (padrão);
+ * - `retro`: tudo do `soft` + linhas de TV antiga e aberração cromática nos títulos.
+ */
+export type ScreenFx = 'off' | 'soft' | 'retro';
+
+/** Preferências visuais, salvas no aparelho. */
 export interface VisualSettings {
-  /** Camada de tela antiga: scanlines, granulado, vinheta, aberração cromática. */
-  crt: boolean;
+  screenFx: ScreenFx;
   /** Fundo animado (shader) nos menus. */
   motion: boolean;
 }
@@ -23,10 +30,19 @@ const prefersReducedMotion = () =>
   typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 const load = (): VisualSettings => {
-  const defaults: VisualSettings = { crt: true, motion: !prefersReducedMotion() };
+  const defaults: VisualSettings = { screenFx: 'soft', motion: !prefersReducedMotion() };
   try {
-    const saved = JSON.parse(storage.get(KEY) ?? 'null') as Partial<VisualSettings> | null;
-    return { ...defaults, ...saved };
+    const saved = JSON.parse(storage.get(KEY) ?? 'null') as
+      (Partial<VisualSettings> & { crt?: boolean }) | null;
+    if (!saved) return defaults;
+    // Versão 1.1 guardava `crt: boolean`: quem desligou continua sem efeitos.
+    const screenFx =
+      saved.screenFx === 'off' || saved.screenFx === 'soft' || saved.screenFx === 'retro'
+        ? saved.screenFx
+        : saved.crt === false
+          ? 'off'
+          : 'soft';
+    return { screenFx, motion: saved.motion ?? defaults.motion };
   } catch {
     return defaults;
   }
@@ -49,10 +65,10 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     });
   }, []);
 
-  // O CSS usa este atributo para ligar a aberração cromática dos títulos.
+  // O CSS usa este atributo para os brilhos/aberração dos títulos (`.crt-text`).
   useEffect(() => {
-    document.documentElement.dataset.crt = settings.crt ? 'on' : 'off';
-  }, [settings.crt]);
+    document.documentElement.dataset.fx = settings.screenFx;
+  }, [settings.screenFx]);
 
   const value = useMemo(() => ({ ...settings, update }), [settings, update]);
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;

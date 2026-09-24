@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { CrtOverlay } from './components/fx/CrtOverlay';
+import { ScreenFx } from './components/fx/ScreenFx';
 import { SwirlBackground } from './components/fx/SwirlBackground';
 import { SuitIcon } from './components/SuitIcon';
 import { PasswordDialog } from './components/ui/PasswordDialog';
@@ -245,7 +245,7 @@ export const App = () => {
         />
       )}
 
-      {fx.crt && <CrtOverlay />}
+      <ScreenFx mode={fx.screenFx} />
     </div>
   );
 };

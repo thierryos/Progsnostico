@@ -34,9 +34,10 @@ export const PlayingCard = ({
         '@container relative shrink-0 overflow-hidden rounded-[9%/6.5%] border border-slate-400 select-none',
         // Papel levemente amarelado embaixo + borda impressa por dentro.
         'bg-[linear-gradient(180deg,#ffffff_0%,#f4f1ea_100%)]',
-        'shadow-[inset_0_0_0_2px_#fff,inset_0_0_0_3px_rgb(15_23_42/0.08),1px_2px_4px_rgb(0_0_0/0.45)]',
-        dimmed ? 'brightness-50 grayscale' : '',
-        highlighted ? 'ring-4 ring-balatro-gold' : '',
+        // Sombra em camadas: contato curto + sombra projetada suave.
+        'shadow-[inset_0_0_0_2px_#fff,inset_0_0_0_3px_rgb(15_23_42/0.08),0_1px_1px_rgb(0_0_0/0.35),0_5px_12px_rgb(0_0_0/0.35)]',
+        dimmed ? 'brightness-[0.62] saturate-[0.35]' : '',
+        highlighted ? 'ring-[3px] ring-balatro-gold drop-shadow-[0_0_10px_rgb(234_179_8/0.6)]' : '',
         className,
       ].join(' ')}
       style={size}
@@ -52,6 +53,11 @@ export const PlayingCard = ({
       <SuitIcon
         suit={card.suit}
         className={`absolute top-1/2 left-1/2 size-[44cqw] -translate-x-1/2 -translate-y-[35%] opacity-90 ${color}`}
+      />
+      {/* Volume: leve sombreado no canto inferior, como papel sob luz de cima. */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-[linear-gradient(160deg,transparent_55%,rgb(15_23_42/0.07)_100%)]"
       />
       {shine && (
         <span
