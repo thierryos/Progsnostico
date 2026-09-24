@@ -1,99 +1,84 @@
 # 🎮 Prognóstico
 
-Um jogo de cartas multiplayer estratégico desenvolvido com React, TypeScript e Firebase, inspirado em jogos de previsão de vazas.
+Jogo de cartas multiplayer de palpites (estilo "Oh Hell"/"Fodinha"), mobile first, feito com
+React, TypeScript e Firebase Realtime Database. Jogue em **https://thierryos.github.io/Progsnostico/**.
 
-## 🎯 Sobre o Jogo
+## 🎯 Regras em 30 segundos
 
-Prognóstico é um jogo de cartas onde os jogadores devem prever quantas rodadas irão vencer em cada partida. A habilidade está em fazer previsões precisas e jogar estrategicamente para alcançá-las!
+- Cada rodada distribui N cartas e vira um **trunfo**. O trunfo vence qualquer outro naipe.
+- Cada jogador dá um **palpite**: quantos duelos (vazas) vai vencer.
+- É obrigatório seguir o **naipe puxado** quando se tem carta dele.
+- Pontos: **1 por duelo vencido + 5 de bônus** se acertar o palpite exato.
+- Modos: **Clássico** (1 → máx) e **Pirâmide** (1 → máx → 1).
 
-### Características
+## ✨ Recursos
 
-- 🌐 **Multiplayer Online** - Jogue com amigos em tempo real
-- 🎨 **Interface Moderna** - Design inspirado em cartas clássicas
-- 🔥 **Tempo Real** - Sincronização instantânea via Firebase
-- 🎯 **Sistema de Pontuação** - Ganhe pontos por previsões corretas
-- 🏆 **Ranking** - Acompanhe a pontuação de todos os jogadores
-- 🎭 **Salas Privadas** - Crie salas com senha para jogar com amigos
+- 📱 **Mobile first**: layout em coluna para celular em pé, barra compacta para celular deitado,
+  placar lateral no desktop. Toque seleciona a carta, segundo toque joga.
+- 🌐 **Online** com salas públicas/privadas, código de sala e link de convite (`?sala=CODIGO`).
+- 🤖 **Offline contra bots** e **tutorial interativo** (não usam rede).
+- 🔁 **Reconexão**: recarregou a página? Volta para a mesma mesa. Caiu a conexão? Um bot joga
+  por você até você voltar.
+- 🌍 Português, inglês e espanhol.
 
-## 🛠️ Tecnologias
+## 🛠️ Desenvolvimento
 
-- **React 19** - Framework UI
-- **TypeScript** - Tipagem estática
-- **Vite** - Build tool e dev server
-- **Firebase Realtime Database** - Sincronização em tempo real
-- **Tailwind CSS** - Estilização via CDN
-- **Lucide React** - Ícones
-
-## 💻 Desenvolvimento Local
-
-### Pré-requisitos
-
-- Node.js 18+
-- npm ou yarn
-- Conta Firebase (para configurar backend)
-
-### Instalação
+Pré-requisitos: Node.js 20+.
 
 ```bash
-# Clone o repositório
-git clone https://github.com/seu-usuario/Prognostico.git
-cd Prognostico
-
-# Instale as dependências
 npm install
-
-# Configure as variáveis de ambiente
-cp .env.example .env
-# Edite o .env com suas credenciais do Firebase
-
-# Inicie o servidor de desenvolvimento
-npm run dev
+cp .env.example .env      # preencha com as credenciais do Firebase
+npm run dev               # http://localhost:3000/Progsnostico/
 ```
 
-O jogo estará disponível em `http://localhost:3000`
+| Script                                      | O que faz                                                               |
+| ------------------------------------------- | ----------------------------------------------------------------------- |
+| `npm run dev`                               | Servidor de desenvolvimento (Firebase real do `.env`)                   |
+| `npm run dev:fake`                          | Multiplayer **sem Firebase**: banco em memória compartilhado entre abas |
+| `npm run emulator` + `npm run dev:emulator` | SDK real contra o emulador local do Firebase (Java 11+)                 |
+| `npm run test:emulator`                     | Testa o adaptador e as regras (`firebase-rules.json`) no emulador       |
+| `npm test`                                  | Testes (motor de regras, serialização, adaptador Firebase, layout)      |
+| `npm run lint`                              | ESLint                                                                  |
+| `npm run format`                            | Prettier                                                                |
+| `npm run check`                             | Tudo acima + typecheck + build (o mesmo que o CI roda)                  |
 
-### Configuração do Firebase
+> 💡 Para testar o online sem mexer no banco de produção, use `npm run dev:fake` e abra duas abas.
 
-1. Crie um projeto no [Firebase Console](https://console.firebase.google.com)
-2. Ative o Realtime Database
-3. Copie as credenciais e configure no arquivo `.env`
-4. Configure as regras de segurança do banco de dados conforme necessário
+## 🏗️ Arquitetura
 
-### Scripts Disponíveis
-
-```bash
-npm run dev      # Inicia servidor de desenvolvimento
-npm run build    # Gera build de produção
-npm run preview  # Preview do build de produção
-npm run deploy   # Deploy para GitHub Pages
 ```
+src/
+  game/        motor de regras PURO (sem React/Firebase): engine.ts, rules.ts, bot.ts
+  net/         Firebase: firebase.ts (transações), serialize.ts, fake/ (banco falso p/ testes)
+  rooms/       controladores: OnlineRoom (presença, autoridade), OfflineRoom
+  screens/     telas: menu, salas, sala de espera, jogo
+  components/  peças visuais (mesa, mão, cartas, modais)
+  tutorial/    roteiro do tutorial + holofote
+  i18n/        pt, en, es
+```
+
+- **Toda ação** (`bid`, `play`, `ready`…) passa por `reduce(state, action)` em `game/engine.ts`.
+  Offline, isso roda local; online, roda **dentro de uma transação** do Firebase sobre o estado
+  remoto. Ações repetidas ou fora de hora viram no-op, sem race conditions.
+- **Autoridade**: o primeiro humano conectado executa as jogadas dos bots e a resolução das
+  vazas. Se ele sair, o próximo assume automaticamente.
+- **Dados no Firebase**: `rooms/{codigo}/meta` (lista de salas), `rooms/{codigo}/game`
+  (partida) e `rooms/{codigo}/presence/{jogador}`.
+
+### Regras do Realtime Database
+
+Veja a seção "Regras do Realtime Database" em [DEPLOY.md](DEPLOY.md): as regras recomendadas
+(`firebase-rules.json`, local) incluem o índice `meta/status` + `meta/lastActivity` da lista de
+salas e validam os dados gravados. Teste com `npm run test:emulator` antes de publicar.
+
+⚠️ Sem Firebase Auth, qualquer cliente consegue ler o estado completo da partida (inclusive as
+mãos). Para um jogo casual entre amigos isso é aceitável; para impedir trapaças seria preciso
+Firebase Auth + regras por jogador ou um servidor autoritativo.
 
 ## 📦 Deploy
 
-O projeto está configurado para deploy automático no GitHub Pages via GitHub Actions.
-
-1. Configure os Secrets do GitHub com suas variáveis Firebase
-2. Faça push para a branch `main`
-3. O deploy será automático
-
-Veja [DEPLOY.md](DEPLOY.md) para instruções detalhadas.
-
-## 🎮 Como Jogar
-
-1. **Menu Principal** - Escolha criar uma sala ou entrar em uma existente
-2. **Sala de Espera** - Aguarde outros jogadores entrarem
-3. **Fazer Previsões** - Aposte quantas rodadas você irá ganhar
-4. **Jogar Cartas** - Jogue suas cartas estrategicamente
-5. **Pontuação** - Ganhe pontos por previsões corretas!
+Push na `main` → GitHub Actions roda os testes e publica no GitHub Pages. Veja [DEPLOY.md](DEPLOY.md).
 
 ## 📄 Licença
 
-Este projeto é de código aberto e está disponível sob a licença MIT.
-
-## 🤝 Contribuições
-
-Contribuições são bem-vindas! Sinta-se à vontade para abrir issues ou pull requests.
-
----
-
-Desenvolvido com ❤️ usando React e Firebase
+MIT.
