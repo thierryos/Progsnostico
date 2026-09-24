@@ -29,6 +29,12 @@ metadata.json
 CLEANUP_SYSTEM.md
 FIREBASE_RULES.md
 
+# Claude Code: skills/agentes são versionados; configurações locais não
+.claude/settings.local.json
+
+# Capturas do script de screenshots (skill prognostico-mobile-ui)
+screenshots/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
