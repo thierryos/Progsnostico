@@ -1,80 +1,47 @@
-# 🚀 Deploy Guide - GitHub Pages
+# 🚀 Deploy no GitHub Pages
 
-## Prerequisites
+## 1. Secrets do repositório
 
-- GitHub account
-- Firebase project configured
-- Repository pushed to GitHub
-
-## Setup
-
-### 1. Configure GitHub Secrets
-
-Go to: **Settings** → **Secrets and variables** → **Actions** → **New repository secret**
-
-Add these secrets with your Firebase credentials:
+Em **Settings → Secrets and variables → Actions**, crie:
 
 - `VITE_FIREBASE_API_KEY`
 - `VITE_FIREBASE_AUTH_DOMAIN`
+- `VITE_FIREBASE_DATABASE_URL`
 - `VITE_FIREBASE_PROJECT_ID`
 - `VITE_FIREBASE_STORAGE_BUCKET`
 - `VITE_FIREBASE_MESSAGING_SENDER_ID`
 - `VITE_FIREBASE_APP_ID`
 - `VITE_FIREBASE_MEASUREMENT_ID`
-- `VITE_FIREBASE_DATABASE_URL`
 
-### 2. Enable GitHub Pages
+> A configuração web do Firebase vai para o JavaScript público do site, então ela **não é
+> segredo**. A proteção real do banco são as **regras do Realtime Database**.
 
-1. Go to: **Settings** → **Pages**
-2. Under **Source**, select: **GitHub Actions**
-3. Save
+## 2. GitHub Pages
 
-### 3. Deploy
+O workflow publica o conteúdo de `dist/` no branch `gh-pages` (via `peaceiris/actions-gh-pages`).
+Em **Settings → Pages**, a origem deve ser **Deploy from a branch → `gh-pages` / root**.
 
-Push to `main` branch:
+## 3. Publicar
 
-```bash
-git add .
-git commit -m "Deploy to GitHub Pages"
-git push origin main
-```
+Qualquer push na `main` dispara `.github/workflows/deploy.yml`:
 
-The deployment will start automatically. Check progress in the **Actions** tab.
+1. `check`: typecheck, lint, formatação e testes (também roda em pull requests);
+2. `deploy`: build com os secrets e publicação.
 
-### 4. Access Your Game
+Deploy manual (da sua máquina): `npm run deploy`.
 
-After deployment (2-3 minutes):
+## Notas
 
-```
-https://YOUR_USERNAME.github.io/Prognostico/
-```
+- `base` em `vite.config.ts` precisa ser igual ao nome do repositório (`/Progsnostico/`).
+- Salas sem atividade por 10 minutos são apagadas por qualquer cliente que abrir a lista de salas.
+  Isso inclui salas no formato antigo (de antes da v1.0), então partidas abertas em versões antigas
+  terminam no primeiro acesso à versão nova.
+- Adicione o `.indexOn` descrito no README às regras do banco.
 
-## Manual Deploy (Alternative)
+## Problemas comuns
 
-```bash
-npm install
-npm run deploy
-```
-
-## Important Notes
-
-- The `base` path in `vite.config.ts` must match your repository name
-- If you rename the repository, update the `base` value
-- All Firebase credentials must be added as GitHub Secrets
-- The first deployment may take 5-10 minutes
-
-## Troubleshooting
-
-### Blank page after deploy
-Check if `base` in `vite.config.ts` matches your repository name
-
-### Firebase connection fails
-Verify all Secrets are correctly configured
-
-### Build fails
-Run `npm install` and `npm run build` locally to check for errors
-
-### 404 error
-- Ensure Pages is enabled
-- Wait 2-5 minutes after first deploy
-- Access the full URL with `/Prognostico/` at the end
+| Sintoma                            | Causa provável                                               |
+| ---------------------------------- | ------------------------------------------------------------ |
+| Página em branco                   | `base` do Vite diferente do nome do repositório              |
+| "Modo online indisponível"         | Secrets ausentes no build, ou regras do banco negando acesso |
+| Aviso "Using an unspecified index" | Falta o `.indexOn` nas regras                                |
