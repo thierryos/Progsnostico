@@ -35,7 +35,7 @@ export const Table = ({ game, localId }: { game: GameState; localId: string }) =
         className="relative h-full w-full overflow-hidden rounded-[2.5rem] border-[6px] border-wood bg-felt shadow-[inset_0_0_40px_rgb(0_0_0/0.7),0_10px_30px_rgb(0_0_0/0.6)] ring-2 ring-wood-dark"
       >
         <div className="pointer-events-none absolute inset-3 rounded-[2rem] border-2 border-dashed border-white/15" />
-        <div className="pointer-events-none absolute inset-0 grid place-items-center text-5xl whitespace-nowrap text-black/15 select-none sm:text-7xl">
+        <div className="pointer-events-none absolute inset-0 grid place-items-center font-display text-6xl whitespace-nowrap text-black/15 select-none sm:text-8xl">
           {t('gameTitle')}
         </div>
 
@@ -76,7 +76,12 @@ export const Table = ({ game, localId }: { game: GameState; localId: string }) =
                 }}
               >
                 <div className="animate-card-slam">
-                  <PlayingCard card={played.card} width={cardW} highlighted={isWinner} />
+                  <PlayingCard
+                    card={played.card}
+                    width={cardW}
+                    highlighted={isWinner}
+                    shine={isWinner}
+                  />
                 </div>
                 {isWinner && (
                   <span className="absolute -top-2 -right-2 rounded-full border-2 border-white bg-green-500 p-1 text-black shadow-lg">

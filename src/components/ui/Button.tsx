@@ -3,12 +3,14 @@ import type { ButtonHTMLAttributes, ReactNode } from 'react';
 type Variant = 'primary' | 'danger' | 'success' | 'gold' | 'neutral' | 'ghost';
 type Size = 'sm' | 'md' | 'lg';
 
+const LIGHT_TEXT = 'text-white [text-shadow:0_2px_0_rgb(0_0_0/0.35)] pixel-bevel';
+
 const VARIANTS: Record<Variant, string> = {
-  primary: 'bg-balatro-blue text-white border-blue-900',
-  danger: 'bg-balatro-red text-white border-red-900',
-  success: 'bg-green-600 text-white border-green-900',
-  gold: 'bg-balatro-gold text-black border-yellow-800',
-  neutral: 'bg-slate-700 text-white border-slate-900',
+  primary: `bg-balatro-blue border-blue-900 ${LIGHT_TEXT}`,
+  danger: `bg-balatro-red border-red-900 ${LIGHT_TEXT}`,
+  success: `bg-green-600 border-green-900 ${LIGHT_TEXT}`,
+  gold: 'bg-balatro-gold text-black border-yellow-800 pixel-bevel',
+  neutral: `bg-slate-700 border-slate-900 ${LIGHT_TEXT}`,
   ghost: 'bg-slate-800/80 text-slate-200 border-slate-950 ring-1 ring-slate-600',
 };
 

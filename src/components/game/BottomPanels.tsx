@@ -18,7 +18,9 @@ const Stat = ({
 }) => (
   <div className="flex flex-col items-center leading-none">
     <span className="text-xs tracking-wider text-slate-400 uppercase">{label}</span>
-    <span className={`text-2xl ${className}`}>{value}</span>
+    <span key={value} className={`inline-block animate-pop text-2xl ${className}`}>
+      {value}
+    </span>
   </div>
 );
 

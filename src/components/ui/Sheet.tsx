@@ -46,17 +46,21 @@ export const Sheet = ({
         role="dialog"
         aria-modal="true"
         className={[
-          'relative flex w-full flex-col overflow-hidden border-balatro-gold bg-balatro-panel shadow-2xl',
-          'rounded-t-3xl border-t-4 pb-[env(safe-area-inset-bottom)]',
+          'relative flex w-full flex-col overflow-hidden border-slate-600 bg-balatro-panel shadow-2xl',
+          'rounded-t-3xl border-x-2 border-t-2 pb-[env(safe-area-inset-bottom)]',
           'animate-in slide-in-from-bottom duration-300',
-          'sm:max-w-2xl sm:rounded-3xl sm:border-4 sm:pb-0 sm:zoom-in-95 sm:slide-in-from-bottom-0',
+          'sm:max-w-2xl sm:rounded-3xl sm:border-2 sm:pb-0 sm:zoom-in-95 sm:slide-in-from-bottom-0',
           size === 'tall' ? 'h-[92dvh] sm:h-[85dvh]' : 'max-h-[92dvh] sm:max-h-[85dvh]',
         ].join(' ')}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Faixa de marca (a mesma do painel do menu). */}
+        <div className="h-1.5 shrink-0 bg-gradient-to-r from-balatro-red via-balatro-blue to-balatro-gold" />
         {(title || onClose) && (
           <header className="flex shrink-0 items-center gap-3 border-b-2 border-slate-800 bg-slate-950/60 px-4 py-3">
-            <div className="min-w-0 flex-1 text-2xl text-balatro-gold uppercase">{title}</div>
+            <div className="crt-text min-w-0 flex-1 text-2xl text-balatro-gold uppercase">
+              {title}
+            </div>
             {onClose && (
               <button
                 type="button"

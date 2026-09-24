@@ -25,7 +25,7 @@ export const NoticeProvider = ({ children }: { children: ReactNode }) => {
           role="status"
           className="pointer-events-none fixed inset-x-0 top-[max(0.75rem,env(safe-area-inset-top))] z-[70] flex justify-center px-4"
         >
-          <div className="max-w-md rounded-xl border-2 border-balatro-gold bg-slate-950/95 px-4 py-2 text-center text-xl text-white shadow-2xl animate-in fade-in slide-in-from-top-4">
+          <div className="pixel-bevel max-w-md rounded-xl border-2 border-balatro-gold bg-slate-950/95 px-4 py-2 text-center text-xl text-white shadow-[4px_4px_0_rgb(0_0_0/0.5)] animate-in fade-in slide-in-from-top-4">
             {notice.text}
           </div>
         </div>

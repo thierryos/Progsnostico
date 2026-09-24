@@ -28,8 +28,9 @@ adapte para `short:` (celular deitado), `sm:`, `lg:` (desktop com placar lateral
   seleciona, 2º joga; mouse joga com 1 clique.
 - **Modais**: sempre `<Sheet>` (bottom sheet no celular, diálogo centralizado a partir de `sm`).
   Nada de `alert()`/`prompt()`/`confirm()` — use `useNotice()` e `PasswordDialog`.
-- **Camadas (z-index)**: conteúdo 0–30 · popovers 40 · sheets 50 · holofote do tutorial 60–65 ·
-  avisos 70. O tutorial destaca elementos pelo **id** — não renomeie: `local-hand`, `trump-card`,
+- **Camadas (z-index)**: conteúdo 0–30 · popovers 40 · sheets 50 · confete 55 · holofote do
+  tutorial 60–65 · avisos 70 · pós-processamento CRT 80 (sempre `pointer-events-none`).
+  O tutorial destaca elementos pelo **id** — não renomeie: `local-hand`, `trump-card`,
   `table-area`, `trick-summary`, `round-summary`, `history-btn`, `help-btn`, `bid-btn-N`,
   `card-<rank>-<naipe>`.
 
@@ -42,6 +43,23 @@ adapte para `short:` (celular deitado), `sm:`, `lg:` (desktop com placar lateral
 - Todo texto visível passa por `t('chave')` (`src/i18n/pt.ts` é a fonte; `en.ts`/`es.ts` são
   tipados e o TypeScript acusa chave faltando).
 - Respeite `prefers-reduced-motion` (já global) — animações só com classes `animate-*`.
+
+## Pós-processamento (identidade "tela de fliperama")
+
+- `components/fx/SwirlBackground.tsx`: shader WebGL em baixa resolução (1 px de shader = 5 px de
+  CSS, `image-rendering: pixelated`, 24 fps). Só anima no menu/lista de salas; na mesa congela.
+  Fora do menu principal o `App` põe um véu escuro por cima — **conteúdo nunca direto sobre o
+  redemoinho**; use painéis/fundos com opacidade ≥ 85%.
+- `components/fx/CrtOverlay.tsx`: scanlines + granulado + vinheta + reflexo, só CSS, z-80.
+  Animações dele só com `transform` (compositor), nunca `background-position` em tela cheia.
+- `.crt-text` aplica aberração cromática em títulos quando o CRT está ligado
+  (`[data-crt='on']`, definido por `lib/settings.tsx`). Use só em títulos.
+- `font-display` (Jersey 10) é **restrita**: título do menu, manchete de fim de jogo e marca
+  d'água da mesa. O resto é `font-pixel` (VT323).
+- Tudo pode ser desligado em Configurações (`useSettings()`: `crt`, `motion`); respeite essas
+  flags em qualquer efeito novo e não crie efeito que atrapalhe a leitura de cartas/pontos.
+- Brilho (`shine`) e `animate-pop` são para momentos de resultado (vaza vencida, pontos), não
+  para decoração constante.
 
 ## Verificação visual (obrigatória para mudanças de UI)
 
@@ -61,4 +79,5 @@ adapte para `short:` (celular deitado), `sm:`, `lg:` (desktop com placar lateral
 - [ ] Botões ≥ 40px e com texto legível; nada depende de hover.
 - [ ] Modais roláveis quando o conteúdo é maior que a tela.
 - [ ] Desktop: placar lateral visível, mesa sem esticar demais.
+- [ ] Textos legíveis com o CRT ligado (scanlines não podem apagar números pequenos).
 - [ ] O script terminou com `0 erro(s)` (erros de console contam).

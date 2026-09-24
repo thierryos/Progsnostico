@@ -1,8 +1,9 @@
-import { ArrowLeft, Bot, Check, Crown, Play, Plus, Share2, Trash2, User } from 'lucide-react';
+import { ArrowLeft, Check, Crown, Play, Plus, Share2, Trash2 } from 'lucide-react';
 import { MAX_PLAYERS, MIN_PLAYERS, maxCardsPerPlayer, roundSequence } from '../game/cards';
 import { getHostId } from '../game/engine';
 import type { GameAction, GameState } from '../game/types';
 import { useI18n } from '../i18n';
+import { PlayerAvatar } from '../components/PlayerAvatar';
 import { Button, IconButton } from '../components/ui/Button';
 import { ModePicker, NumberPicker, Stepper } from '../components/ui/Pickers';
 
@@ -50,11 +51,13 @@ export const WaitingRoom = ({
           <ArrowLeft size={20} />
         </IconButton>
         <div className="min-w-0 flex-1 leading-none">
-          <h1 className="truncate text-3xl text-white">{settings.name}</h1>
+          <h1 className="crt-text truncate text-3xl text-white">{settings.name}</h1>
           {roomCode && (
-            <p className="text-lg text-slate-400">
-              {t('roomCode')}:{' '}
-              <span className="tracking-[0.25em] text-balatro-gold">{roomCode}</span>
+            <p className="mt-1 flex items-center gap-2 text-base text-slate-400 uppercase">
+              {t('roomCode')}
+              <span className="rounded-md border-2 border-dashed border-balatro-gold/80 bg-black/50 px-2 text-xl tracking-[0.25em] text-balatro-gold">
+                {roomCode}
+              </span>
             </p>
           )}
         </div>
@@ -68,8 +71,8 @@ export const WaitingRoom = ({
       <div className="thin-scrollbar min-h-0 flex-1 overflow-y-auto lg:grid lg:grid-cols-[1fr_24rem] lg:overflow-hidden">
         <section className="p-3 lg:thin-scrollbar lg:overflow-y-auto">
           <div className="mb-2 flex items-center justify-between gap-2">
-            <h2 className="text-xl tracking-widest text-slate-400 uppercase">
-              {t('players')}{' '}
+            <h2 className="flex min-w-0 flex-col text-lg leading-tight tracking-wider text-slate-400 uppercase sm:flex-row sm:gap-2">
+              <span>{t('players')}</span>
               <span className={canStart ? 'text-green-400' : 'text-yellow-400'}>
                 {t('readyCount', { n: readyCount, total: players.length })}
               </span>
@@ -80,6 +83,7 @@ export const WaitingRoom = ({
                 size="sm"
                 icon={<Plus size={18} />}
                 onClick={() => dispatch({ type: 'addBot', by: localId })}
+                className="whitespace-nowrap"
               >
                 {t('addBot')}
               </Button>
@@ -92,13 +96,9 @@ export const WaitingRoom = ({
               return (
                 <li
                   key={p.id}
-                  className={`flex min-h-16 items-center gap-3 rounded-xl border-2 p-2 animate-in fade-in zoom-in-95 ${ready ? 'border-green-600 bg-green-950/40' : 'border-slate-600 bg-slate-800'}`}
+                  className={`flex min-h-16 items-center gap-3 rounded-xl border-2 p-2 animate-in fade-in zoom-in-95 ${ready ? 'border-green-600 bg-green-950/70' : 'border-slate-600 bg-slate-800/95'}`}
                 >
-                  <div
-                    className={`grid size-11 shrink-0 place-items-center rounded-full border-2 ${ready ? 'border-green-400 bg-green-700' : 'border-slate-500 bg-slate-700'}`}
-                  >
-                    {p.isBot ? <Bot size={22} /> : <User size={22} />}
-                  </div>
+                  <PlayerAvatar player={p} size={44} />
                   <div className="min-w-0 flex-1 leading-tight">
                     <div className="flex items-center gap-1 truncate text-2xl text-white">
                       {p.id === hostId && (
@@ -117,9 +117,9 @@ export const WaitingRoom = ({
                       className={`flex items-center gap-1 text-base ${ready ? 'text-green-400' : 'text-slate-500'}`}
                     >
                       {ready ? (
-                        <>
+                        <span key="ready" className="flex animate-pop items-center gap-1">
                           <Check size={14} /> {t('statusReady')}
-                        </>
+                        </span>
                       ) : (
                         t('statusWaiting')
                       )}
@@ -140,7 +140,7 @@ export const WaitingRoom = ({
             {Array.from({ length: Math.max(0, settings.maxPlayers - players.length) }, (_, i) => (
               <li
                 key={`empty-${i}`}
-                className="flex min-h-16 items-center justify-center rounded-xl border-2 border-dashed border-slate-700 text-lg text-slate-600 uppercase"
+                className="flex min-h-16 items-center justify-center rounded-xl border-2 border-dashed border-slate-600 bg-slate-950/40 text-lg text-slate-500 uppercase"
               >
                 {t('emptySeat')}
               </li>

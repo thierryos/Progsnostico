@@ -1,10 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
+import { CrtOverlay } from './components/fx/CrtOverlay';
+import { SwirlBackground } from './components/fx/SwirlBackground';
+import { SuitIcon } from './components/SuitIcon';
 import { PasswordDialog } from './components/ui/PasswordDialog';
 import { useNotice } from './components/ui/Notice';
 import { createGame } from './game/engine';
 import { GameRuleError, type GameState, type RoomSettings } from './game/types';
 import { useI18n, type TranslationKey } from './i18n';
 import { getPlayerId } from './lib/ids';
+import { useSettings } from './lib/settings';
 import { consumeRoomParam } from './lib/share';
 import { sessionStore, storage } from './lib/storage';
 import { loadNet, type Net } from './net';
@@ -36,6 +40,7 @@ const errorKey = (e: unknown): TranslationKey =>
 export const App = () => {
   const { t } = useI18n();
   const notify = useNotice();
+  const fx = useSettings();
   const [name, setName] = useState(() => storage.get(NAME_KEY) ?? '');
   const [pendingCode, setPendingCode] = useState(inviteCode);
   const [onlineError, setOnlineError] = useState<string | null>(null);
@@ -155,57 +160,80 @@ export const App = () => {
 
   const goMenu = useCallback(() => setScreen({ name: 'menu' }), []);
 
+  // O redemoinho só se mexe nos menus; na mesa ele congela para poupar bateria.
+  const onMenus = screen.name === 'menu' || screen.name === 'browser' || screen.name === 'resuming';
+  const screenKey = screen.name === 'online' ? `online-${screen.roomId}` : screen.name;
+
   return (
-    <div className="felt-bg safe-area h-dvh w-full overflow-hidden">
-      {screen.name === 'menu' && (
-        <MainMenu
-          initialName={name}
-          onlineAvailable={onlineAvailable}
-          onlineError={onlineError}
-          pendingRoomCode={pendingCode}
-          onTutorial={() => setScreen({ name: 'tutorial' })}
-          onPlay={(playerName, mode) => {
-            setName(playerName);
-            storage.set(NAME_KEY, playerName);
-            setScreen({ name: 'browser', mode });
-          }}
-        />
+    <div className="felt-bg safe-area relative h-dvh w-full overflow-hidden">
+      <SwirlBackground animate={fx.motion && onMenus} />
+      {/* Fora do menu principal o redemoinho vira só textura: o conteúdo precisa de contraste. */}
+      {screen.name !== 'menu' && (
+        <div aria-hidden className="pointer-events-none absolute inset-0 bg-[#06110c]/75" />
       )}
 
-      {screen.name === 'browser' && (
-        <RoomBrowser
-          mode={screen.mode}
-          playerName={name}
-          net={net}
-          busy={busy}
-          onBack={goMenu}
-          onCreate={create}
-          onJoin={join}
-        />
-      )}
+      <div key={screenKey} className="relative h-full animate-in fade-in duration-300">
+        {screen.name === 'menu' && (
+          <MainMenu
+            initialName={name}
+            onlineAvailable={onlineAvailable}
+            onlineError={onlineError}
+            pendingRoomCode={pendingCode}
+            onTutorial={() => setScreen({ name: 'tutorial' })}
+            onPlay={(playerName, mode) => {
+              setName(playerName);
+              storage.set(NAME_KEY, playerName);
+              setScreen({ name: 'browser', mode });
+            }}
+          />
+        )}
 
-      {screen.name === 'online' && net && (
-        <OnlineRoom
-          key={screen.roomId}
-          net={net}
-          roomId={screen.roomId}
-          localId={localId}
-          onExit={exitOnline}
-          onError={onRoomError}
-        />
-      )}
+        {screen.name === 'browser' && (
+          <RoomBrowser
+            mode={screen.mode}
+            playerName={name}
+            net={net}
+            busy={busy}
+            onBack={goMenu}
+            onCreate={create}
+            onJoin={join}
+          />
+        )}
 
-      {screen.name === 'offline' && (
-        <OfflineRoom initial={screen.game} localId={localId} onExit={goMenu} />
-      )}
+        {screen.name === 'online' && net && (
+          <OnlineRoom
+            key={screen.roomId}
+            net={net}
+            roomId={screen.roomId}
+            localId={localId}
+            onExit={exitOnline}
+            onError={onRoomError}
+          />
+        )}
 
-      {screen.name === 'tutorial' && <TutorialRoom onExit={goMenu} />}
+        {screen.name === 'offline' && (
+          <OfflineRoom initial={screen.game} localId={localId} onExit={goMenu} />
+        )}
 
-      {(screen.name === 'resuming' || (screen.name === 'online' && !net)) && (
-        <div className="grid h-full place-items-center text-2xl text-slate-300">
-          <span className="animate-pulse">{t('reconnecting')}</span>
-        </div>
-      )}
+        {screen.name === 'tutorial' && <TutorialRoom onExit={goMenu} />}
+
+        {(screen.name === 'resuming' || (screen.name === 'online' && !net)) && (
+          <div className="flex h-full flex-col items-center justify-center gap-4 text-2xl text-slate-200">
+            <div className="flex gap-3" aria-hidden>
+              {(['spades', 'hearts', 'clubs', 'diamonds'] as const).map((suit, i) => (
+                <SuitIcon
+                  key={suit}
+                  suit={suit}
+                  size={28}
+                  className={`animate-suit-hop ${suit === 'hearts' || suit === 'diamonds' ? 'text-balatro-red' : 'text-white'}`}
+                  style={{ animationDelay: `${i * 0.12}s` }}
+                />
+              ))}
+            </div>
+            <span>{screen.name === 'resuming' ? t('reconnecting') : t('loading')}</span>
+          </div>
+        )}
+      </div>
 
       {passwordPrompt && (
         <PasswordDialog
@@ -216,6 +244,8 @@ export const App = () => {
           }}
         />
       )}
+
+      {fx.crt && <CrtOverlay />}
     </div>
   );
 };

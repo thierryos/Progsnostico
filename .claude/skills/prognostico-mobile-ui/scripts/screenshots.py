@@ -29,8 +29,17 @@ SIZES = {
 errors: list[str] = []
 
 
+# Mensagens do driver de GPU do Chromium headless ao capturar o canvas WebGL (não são do app).
+IGNORED = ("GL Driver Message",)
+
+
 def attach(page: Page, tag: str) -> None:
-    page.on("console", lambda m: m.type in ("error", "warning") and errors.append(f"[{tag}] {m.type}: {m.text[:300]}"))
+    page.on(
+        "console",
+        lambda m: m.type in ("error", "warning")
+        and not any(s in m.text for s in IGNORED)
+        and errors.append(f"[{tag}] {m.type}: {m.text[:300]}"),
+    )
     page.on("pageerror", lambda e: errors.append(f"[{tag}] PAGEERROR: {e}"))
 
 

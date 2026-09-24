@@ -1,6 +1,7 @@
 import { ArrowRight, Check, Crown, House } from 'lucide-react';
 import type { GameState } from '../../game/types';
 import { useI18n } from '../../i18n';
+import { Confetti } from '../fx/Confetti';
 import { Button } from '../ui/Button';
 import { Sheet } from '../ui/Sheet';
 
@@ -55,56 +56,59 @@ export const RoundSummary = ({ game, localId, onReady, onLeave }: RoundSummaryPr
   );
 
   return (
-    <Sheet open id="round-summary" title={title} footer={footer}>
-      {isGameOver && (
-        <div className="px-4 pt-4 text-center text-4xl text-balatro-gold drop-shadow-[3px_3px_0_#000] animate-in zoom-in-90">
-          {winners.length > 1 ? t('tie') : t('winnerIs', { name: winners[0]?.playerName ?? '' })}
-        </div>
-      )}
-      <ul className="flex flex-col gap-2 p-3">
-        {results.map((r) => {
-          const hit = r.bid === r.won;
-          const isMe = r.playerId === localId;
-          const ready = game.players.find((p) => p.id === r.playerId)?.isReady;
-          const rank = results.findIndex((x) => x.totalScore === r.totalScore) + 1;
-          return (
-            <li
-              key={r.playerId}
-              className={`rounded-xl border-2 px-3 py-2 ${isMe ? 'border-balatro-blue bg-slate-800' : 'border-slate-700 bg-slate-900'}`}
-            >
-              <div className="flex items-center gap-2">
-                <span className="w-7 text-center text-xl text-balatro-gold">
-                  {rank === 1 ? <Crown size={20} className="mx-auto" /> : rank}
-                </span>
-                <span className="min-w-0 flex-1 truncate text-2xl text-white">
-                  {r.playerName}
-                  {isMe && <span className="ml-1 text-base text-slate-400">({t('you')})</span>}
-                </span>
-                <span className="text-3xl text-balatro-blue">{r.totalScore}</span>
-              </div>
-              <div className="mt-0.5 flex items-center gap-3 pl-9 text-lg">
-                <span className="text-slate-400">
-                  {t('bidWon')}: <span className="text-white">{r.bid}</span> /{' '}
-                  <span className={hit ? 'text-green-400' : 'text-red-400'}>{r.won}</span>
-                </span>
-                <span className={`text-base ${hit ? 'text-green-400' : 'text-red-400'}`}>
-                  {hit ? t('hit') : t('miss')}
-                </span>
-                <span className="text-balatro-gold">+{r.scoreDelta}</span>
-                {!isGameOver && (
-                  <span className="ml-auto">
-                    {ready ? (
-                      <Check size={20} className="text-green-500" />
-                    ) : (
-                      <span className="text-slate-600">…</span>
-                    )}
+    <>
+      {isGameOver && <Confetti />}
+      <Sheet open id="round-summary" title={title} footer={footer}>
+        {isGameOver && (
+          <div className="crt-text text-extrude px-4 pt-5 text-center font-display text-5xl leading-none text-balatro-gold animate-in zoom-in-75 duration-500">
+            {winners.length > 1 ? t('tie') : t('winnerIs', { name: winners[0]?.playerName ?? '' })}
+          </div>
+        )}
+        <ul className="flex flex-col gap-2 p-3">
+          {results.map((r) => {
+            const hit = r.bid === r.won;
+            const isMe = r.playerId === localId;
+            const ready = game.players.find((p) => p.id === r.playerId)?.isReady;
+            const rank = results.findIndex((x) => x.totalScore === r.totalScore) + 1;
+            return (
+              <li
+                key={r.playerId}
+                className={`rounded-xl border-2 px-3 py-2 ${isMe ? 'border-balatro-blue bg-slate-800' : 'border-slate-700 bg-slate-900'}`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="w-7 text-center text-xl text-balatro-gold">
+                    {rank === 1 ? <Crown size={20} className="mx-auto" /> : rank}
                   </span>
-                )}
-              </div>
-            </li>
-          );
-        })}
-      </ul>
-    </Sheet>
+                  <span className="min-w-0 flex-1 truncate text-2xl text-white">
+                    {r.playerName}
+                    {isMe && <span className="ml-1 text-base text-slate-400">({t('you')})</span>}
+                  </span>
+                  <span className="text-3xl text-balatro-blue">{r.totalScore}</span>
+                </div>
+                <div className="mt-0.5 flex items-center gap-3 pl-9 text-lg">
+                  <span className="text-slate-400">
+                    {t('bidWon')}: <span className="text-white">{r.bid}</span> /{' '}
+                    <span className={hit ? 'text-green-400' : 'text-red-400'}>{r.won}</span>
+                  </span>
+                  <span className={`text-base ${hit ? 'text-green-400' : 'text-red-400'}`}>
+                    {hit ? t('hit') : t('miss')}
+                  </span>
+                  <span className="text-balatro-gold">+{r.scoreDelta}</span>
+                  {!isGameOver && (
+                    <span className="ml-auto">
+                      {ready ? (
+                        <Check size={20} className="text-green-500" />
+                      ) : (
+                        <span className="text-slate-600">…</span>
+                      )}
+                    </span>
+                  )}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </Sheet>
+    </>
   );
 };

@@ -1,7 +1,8 @@
-import { Bot, Check, Flag, WifiOff } from 'lucide-react';
+import { Check, Flag, WifiOff } from 'lucide-react';
 import { BID_STATUS_COLOR, bidStatus, seatOrder } from '../../game/selectors';
 import type { GameState, Player } from '../../game/types';
 import { useI18n } from '../../i18n';
+import { PlayerAvatar } from '../PlayerAvatar';
 
 /** Oponentes na ordem em que jogam depois de você (esquerda → direita). */
 export const OpponentStrip = ({
@@ -51,10 +52,12 @@ const OpponentChip = ({ player, game }: { player: Player; game: GameState }) => 
         player.isAway ? 'opacity-60' : '',
       ].join(' ')}
     >
-      <div
-        className={`relative grid size-8 place-items-center rounded-full text-xl short:hidden ${isTurn ? 'bg-balatro-gold text-black' : 'bg-slate-700 text-white'}`}
-      >
-        {player.isBot ? <Bot size={18} /> : player.name.charAt(0).toUpperCase()}
+      <div className="relative short:hidden">
+        <PlayerAvatar
+          player={player}
+          size={32}
+          className={isTurn ? 'outline-2 outline-offset-1 outline-balatro-gold' : ''}
+        />
         {isLeader && (
           <span className="absolute -top-1 -right-2 rounded-full border border-white bg-balatro-red p-0.5 text-white">
             <Flag size={10} fill="currentColor" />
@@ -76,7 +79,12 @@ const OpponentChip = ({ player, game }: { player: Player; game: GameState }) => 
         <span title={`${t('bid')} / ${t('won')}`}>
           <span className="text-slate-400">{player.currentBid ?? '–'}</span>
           <span className="text-slate-600">/</span>
-          <span className={BID_STATUS_COLOR[bidStatus(player)]}>{player.tricksWon}</span>
+          <span
+            key={player.tricksWon}
+            className={`inline-block animate-pop ${BID_STATUS_COLOR[bidStatus(player)]}`}
+          >
+            {player.tricksWon}
+          </span>
         </span>
         <span
           className="flex items-center gap-0.5 text-slate-400"
