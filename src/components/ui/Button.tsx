@@ -68,7 +68,10 @@ const TONES = {
   danger: 'bg-red-900/80 text-white border-red-700 enabled:hover:bg-red-700',
 };
 
-/** Botão só com ícone: área de toque de 40px e rótulo acessível obrigatório. */
+/**
+ * Botão só com ícone: área de toque de 40px e rótulo acessível obrigatório.
+ * O ícone acompanha o tamanho do botão (cresce junto com a interface em monitores grandes).
+ */
 export const IconButton = ({
   label,
   tone = 'default',
@@ -80,7 +83,7 @@ export const IconButton = ({
     type={type}
     aria-label={label}
     title={label}
-    className={`grid size-10 shrink-0 place-items-center rounded-full border-2 shadow-lg transition-colors ${TONES[tone]} ${className}`}
+    className={`grid size-10 shrink-0 place-items-center rounded-full border-2 shadow-lg transition-colors [&>svg]:size-[50%] ${TONES[tone]} ${className}`}
     {...props}
   />
 );

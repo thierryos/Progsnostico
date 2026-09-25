@@ -3,6 +3,7 @@ import type { GameState } from '../../game/types';
 import { useI18n } from '../../i18n';
 import { Confetti } from '../fx/Confetti';
 import { Button } from '../ui/Button';
+import { Kbd } from '../ui/Kbd';
 import { Sheet } from '../ui/Sheet';
 
 interface RoundSummaryProps {
@@ -51,6 +52,7 @@ export const RoundSummary = ({ game, localId, onReady, onLeave }: RoundSummaryPr
       >
         {me?.isReady ? t('waiting') : t('nextRound')}
         {!me?.isReady && <ArrowRight size={24} />}
+        {!me?.isReady && <Kbd>{t('keyEnter')}</Kbd>}
       </Button>
     </div>
   );

@@ -1,10 +1,13 @@
 import { Check, Flag, WifiOff } from 'lucide-react';
-import { BID_STATUS_COLOR, bidStatus, seatOrder } from '../../game/selectors';
+import { seatOrder } from '../../game/selectors';
 import type { GameState, Player } from '../../game/types';
-import { useI18n } from '../../i18n';
 import { PlayerAvatar } from '../PlayerAvatar';
+import { BidPips } from './BidPips';
 
-/** Oponentes na ordem em que jogam depois de você (esquerda → direita). */
+/**
+ * Oponentes na ordem em que jogam depois de você (esquerda → direita).
+ * No PC (lg) some: o placar lateral e os assentos da mesa já mostram tudo isso.
+ */
 export const OpponentStrip = ({
   game,
   localId,
@@ -22,7 +25,7 @@ export const OpponentStrip = ({
       className={
         inline
           ? 'no-scrollbar flex min-w-0 gap-1 overflow-x-auto'
-          : 'flex shrink-0 flex-wrap justify-center gap-1.5 px-2 pb-1.5 short:hidden'
+          : 'flex shrink-0 flex-wrap justify-center gap-1.5 px-2 pb-1.5 short:hidden lg:hidden'
       }
     >
       {opponents.map((p) => (
@@ -33,7 +36,6 @@ export const OpponentStrip = ({
 };
 
 const OpponentChip = ({ player, game }: { player: Player; game: GameState }) => {
-  const { t } = useI18n();
   const isTurn = game.currentTurn === player.id;
   const isLeader =
     game.currentTrickLeader === player.id &&
@@ -75,24 +77,8 @@ const OpponentChip = ({ player, game }: { player: Player; game: GameState }) => 
         {player.name}
       </span>
 
-      <div className="flex w-full items-center justify-between px-0.5 text-sm leading-none">
-        <span title={`${t('bid')} / ${t('won')}`}>
-          <span className="text-slate-400">{player.currentBid ?? '–'}</span>
-          <span className="text-slate-600">/</span>
-          <span
-            key={player.tricksWon}
-            className={`inline-block animate-pop ${BID_STATUS_COLOR[bidStatus(player)]}`}
-          >
-            {player.tricksWon}
-          </span>
-        </span>
-        <span
-          className="flex items-center gap-0.5 text-slate-400"
-          title={t('cardsMany', { n: player.hand.length })}
-        >
-          <span className="inline-block h-3 w-2 rounded-[2px] border border-white/70 bg-balatro-red" />
-          {player.hand.length}
-        </span>
+      <div className="flex h-3.5 items-center justify-center text-sm leading-none">
+        <BidPips player={player} />
       </div>
     </div>
   );

@@ -8,13 +8,18 @@ description: Convenções mobile-first e verificação visual por screenshots do
 O jogo é usado principalmente no **celular em pé**. Desenhe para 360×640 primeiro e só depois
 adapte para `short:` (celular deitado), `sm:`, `lg:` (desktop com placar lateral).
 
+**PC também importa**: em monitores grandes a interface cresce junto (`html { font-size }` sobe
+para 17/20/24px em `src/index.css`), então **meça tudo em rem** (classes do Tailwind). Valores em
+px só quando vierem de cálculo (cartas, mesa); ícones dentro de `IconButton` já escalam sozinhos.
+
 ## Regras de layout
 
 - **Altura**: a raiz usa `h-dvh` + utilitário `safe-area` (notch/barra de gestos). Nunca use
   `h-screen`/`100vh`. Rodapés fixos somam `pb-[max(0.75rem,env(safe-area-inset-bottom))]`.
 - **Tela de jogo** (`src/screens/GameScreen.tsx`) é uma coluna: `TopBar` → `OpponentStrip` →
   `Table` (flex-1) → painel inferior (`BidPanel` | `TrickSummaryPanel` | `PlayerBar`) → `Hand`.
-  O palpite **nunca cobre a mão**: o jogador decide olhando as cartas.
+  O palpite **nunca cobre a mão**: o jogador decide olhando as cartas. No `lg` a `OpponentStrip`
+  some (placar lateral + assentos da mesa já mostram os oponentes).
 - **Telas baixas**: variante `short:` (definida em `src/index.css`, `max-height: 520px`). Nelas os
   oponentes sobem para a `TopBar` e os painéis ficam compactos.
 - **Cartas**: `PlayingCard` recebe `width` em px e escala tudo via container queries (`cqw`).
@@ -24,10 +29,12 @@ adapte para `short:` (celular deitado), `sm:`, `lg:` (desktop com placar lateral
   receber `trump`** (mão, mesa, histórico), é o que ensina o iniciante a reconhecê-lo.
   Tamanhos vêm de cálculo, nunca de classes fixas:
   - mão: `Hand.tsx` (cabe na largura, sobreposição automática);
-  - mesa: `layoutTable()` em `components/game/tableLayout.ts` — **toda mudança ali precisa
-    manter `tableLayout.test.ts` verde** (cartas não se cobrem nem cobrem os cantos reservados:
-    selo do naipe puxado `LEAD_CHIP` e painel do trunfo `trumpPanel`, em 5 tamanhos × 2–7
-    jogadores).
+  - mesa: `planTable()` em `components/game/tableLayout.ts` decide tudo junto — anel (cartas
+    no assento de cada um, com assentos vazios marcando a vez) ou fileira, selo do naipe puxado e
+    painel do trunfo (canto no anel; lateral na mesa baixa; na barra do topo só se não couber).
+    O painel e o selo escalam com a mesa (`tableScale`): no PC o trunfo fica grande. **Toda
+    mudança ali precisa manter `tableLayout.test.ts` verde** (8 tamanhos, de 360×640 a
+    1920×960, × 2–7 jogadores: nada se cobre e o trunfo aparece grande em tablet/notebook/PC).
 - **Toque**: alvos de no mínimo 40px (`IconButton` = `size-10`, botões `min-h-10`+). Nada pode
   depender de hover (tooltips): a informação fica visível ou aparece no toque. Carta: 1º toque
   seleciona, 2º joga; mouse joga com 1 clique.
@@ -37,8 +44,12 @@ adapte para `short:` (celular deitado), `sm:`, `lg:` (desktop com placar lateral
   com voltar; a partida pede confirmação; a sala de espera sai da sala. Tela nova com estado
   interno (ex.: formulário) deve registrar o seu.
 - **Para leigos**: a barra do jogador explica o que pode ser jogado ("Você precisa jogar Copas",
-  "Sem Copas: jogue qualquer carta — trunfo vence!") e o resumo da vaza diz por que alguém venceu.
-  Mudou regra de jogada? Atualize essas dicas.
+  "Sem Copas: jogue qualquer carta — trunfo vence!"), o selo embaixo de PALPITE/FEITAS diz a meta
+  ("FALTA 1", "NA MOSCA", "EVITE VENCER", "ESTOUROU") e o resumo da vaza diz por que alguém venceu.
+  Oponentes mostram o palpite como bolinhas (`BidPips`). Mudou regra de jogada? Atualize as dicas.
+- **PC**: atalhos em `GameScreen` via `useKeyboard` (número = palpite; Enter/Espaço = próximo
+  duelo/rodada), com a tecla indicada por `<Kbd>` (só aparece com mouse: `pointer-fine:`). A aba do
+  navegador mostra "▶ SUA VEZ" quando é a sua vez.
 - **Camadas (z-index)**: conteúdo 0–30 · popovers 40 · sheets 50 · confete 55 · holofote do
   tutorial 60–65 · avisos 70 · pós-processamento CRT 80 (sempre `pointer-events-none`).
   O tutorial destaca elementos pelo **id** — não renomeie: `local-hand`, `trump-card` (painel da
@@ -78,8 +89,10 @@ adapte para `short:` (celular deitado), `sm:`, `lg:` (desktop com placar lateral
 1. Suba o servidor com o **banco falso** (não toca o Firebase real):
    `npm run dev:fake -- --port 5173 --strictPort` (em segundo plano).
 2. Rode as capturas:
-   `python .claude/skills/prognostico-mobile-ui/scripts/screenshots.py --out screenshots --sizes small,phone,landscape,desktop`
-   (fluxos: `game`, `sheets`, `tutorial`, `online`; filtre com `--flows`).
+   `python .claude/skills/prognostico-mobile-ui/scripts/screenshots.py --out screenshots --sizes small,phone,landscape,laptop,wide`
+   (fluxos: `game`, `sheets`, `tutorial`, `online`, `routes`; filtre com `--flows`. Tamanhos:
+   `small` 360×640, `phone` 390×844, `landscape` 844×390, `tablet` 768×1024, `laptop` 1366×768,
+   `desktop` 1280×800, `wide` 1920×950 = monitor Full HD com a barra do navegador).
 3. **Abra as imagens** (ferramenta Read) e confira a lista abaixo em cada tamanho.
 4. Corrija, repita, e termine com `npm run check`.
 
@@ -90,6 +103,6 @@ adapte para `short:` (celular deitado), `sm:`, `lg:` (desktop com placar lateral
 - [ ] Painel de palpite e resumo não escondem a mão.
 - [ ] Botões ≥ 40px e com texto legível; nada depende de hover.
 - [ ] Modais roláveis quando o conteúdo é maior que a tela.
-- [ ] Desktop: placar lateral visível, mesa sem esticar demais.
+- [ ] Desktop: placar lateral visível, mesa sem esticar demais, trunfo grande na mesa.
 - [ ] Sem listras sobre as cartas no modo Suave; no Retrô, textos pequenos continuam legíveis.
 - [ ] O script terminou com `0 erro(s)` (erros de console contam).

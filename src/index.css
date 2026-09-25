@@ -233,6 +233,26 @@
     height: 100%;
   }
 
+  /*
+   * Monitores grandes: a interface inteira cresce junto (textos, espaçamentos e botões são em
+   * rem). As alturas descontam a barra do navegador (1920×1080 → ~1920×950 de área útil).
+   */
+  @media (min-width: 1560px) and (min-height: 760px) {
+    html {
+      font-size: 17px;
+    }
+  }
+  @media (min-width: 1800px) and (min-height: 880px) {
+    html {
+      font-size: 20px;
+    }
+  }
+  @media (min-width: 2400px) and (min-height: 1200px) {
+    html {
+      font-size: 24px;
+    }
+  }
+
   body {
     margin: 0;
     overflow: hidden;
@@ -240,7 +260,7 @@
     background-color: #0a2f1b;
     color: #fff;
     font-family: var(--font-pixel);
-    font-size: 18px;
+    font-size: 1.125rem;
     line-height: 1.25;
     /* Evita zoom por toque duplo sem bloquear o pinça-zoom. */
     touch-action: manipulation;
