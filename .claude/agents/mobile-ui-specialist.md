@@ -21,7 +21,7 @@ estiver disponível, leia `.claude/skills/<nome>/SKILL.md`).
    modais com `<Sheet>`, textos via `t()`, tamanhos de carta calculados, tokens do `@theme`.
 4. Se mexer em `tableLayout.ts`, mantenha `tableLayout.test.ts` verde (e acrescente casos).
 5. **Rode as capturas de novo** e compare. Só conclua quando o checklist da skill passar em
-   `small`, `phone`, `landscape` e `desktop`, e o script terminar com `0 erro(s)`.
+   `small`, `phone`, `landscape`, `laptop` e `wide` (PC), e o script terminar com `0 erro(s)`.
 6. `npm run check`.
 
 ## Regras

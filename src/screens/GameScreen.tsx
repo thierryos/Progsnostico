@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useBackHandler } from '../lib/back';
 import { BidPanel, PlayerBar, TrickSummaryPanel } from '../components/game/BottomPanels';
 import { Hand } from '../components/game/Hand';
@@ -12,6 +12,7 @@ import { TopBar } from '../components/game/TopBar';
 import { Button } from '../components/ui/Button';
 import { Sheet } from '../components/ui/Sheet';
 import { useGameFeedback } from '../hooks/useGameFeedback';
+import { useKeyboard } from '../hooks/useKeyboard';
 import { isValidMove } from '../game/rules';
 import type { Card, GameAction, GameState } from '../game/types';
 import { useI18n } from '../i18n';
@@ -45,6 +46,8 @@ export const GameScreen = ({
   const { t } = useI18n();
   const [panel, setPanel] = useState<Panel>('none');
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // O trunfo aparece na barra superior só quando o painel dele não coube na mesa.
+  const [trumpOnTable, setTrumpOnTable] = useState(true);
   useGameFeedback(game, localId);
   // Voltar no meio da partida não sai direto: abre a confirmação.
   useBackHandler(() => {
@@ -53,28 +56,54 @@ export const GameScreen = ({
   });
 
   const me = game.players.find((p) => p.id === localId);
+  const myTurn = game.currentTurn === localId;
+  const bid = (amount: number) => {
+    playSound('bid');
+    dispatch({ type: 'bid', playerId: localId, amount });
+  };
+  const ready = () => dispatch({ type: 'ready', playerId: localId });
+
+  // Atalhos do PC: número = palpite; Enter/Espaço = próximo duelo / próxima rodada.
+  useKeyboard(
+    (key) => {
+      if (!me) return false;
+      if (game.phase === 'bidding' && myTurn && /^\d$/.test(key)) {
+        if (Number(key) > me.hand.length) return false;
+        bid(Number(key));
+        return true;
+      }
+      const waitingMe =
+        (game.phase === 'trick_summary' || game.phase === 'round_end') && !me.isReady;
+      if (waitingMe && (key === 'Enter' || key === ' ')) {
+        ready();
+        return true;
+      }
+      return false;
+    },
+    panel === 'none' && mode !== 'tutorial',
+  );
+
+  // A aba do navegador avisa quando é a sua vez (PC com outra aba aberta, partida online).
+  const yourMove = myTurn && (game.phase === 'bidding' || game.phase === 'playing');
+  useEffect(() => {
+    if (!yourMove) return;
+    const original = document.title;
+    document.title = `▶ ${t('yourTurn')} · ${original}`;
+    return () => {
+      document.title = original;
+    };
+  }, [yourMove, t]);
+
   if (!me) return null;
 
-  const myTurn = game.currentTurn === localId;
   const canPlay = (card: Card) => isValidMove(card, me.hand, game.leadSuit);
   const selectedStillValid = selectedId !== null && me.hand.some((c) => c.id === selectedId);
 
   const bottom =
     game.phase === 'bidding' && myTurn ? (
-      <BidPanel
-        game={game}
-        me={me}
-        onBid={(amount) => {
-          playSound('bid');
-          dispatch({ type: 'bid', playerId: localId, amount });
-        }}
-      />
+      <BidPanel game={game} me={me} onBid={bid} />
     ) : game.phase === 'trick_summary' ? (
-      <TrickSummaryPanel
-        game={game}
-        me={me}
-        onReady={() => dispatch({ type: 'ready', playerId: localId })}
-      />
+      <TrickSummaryPanel game={game} me={me} onReady={ready} />
     ) : (
       <PlayerBar game={game} me={me} hint={myTurn && selectedStillValid ? 'tapAgain' : null} />
     );
@@ -92,6 +121,7 @@ export const GameScreen = ({
       <main className="relative flex min-w-0 flex-1 flex-col">
         <TopBar
           game={game}
+          showTrump={!trumpOnTable}
           center={<OpponentStrip game={game} localId={localId} inline />}
           onOpenScoreboard={() => setPanel('scoreboard')}
           onOpenHistory={openHistory}
@@ -99,7 +129,7 @@ export const GameScreen = ({
           onExit={() => setPanel('exit')}
         />
         <OpponentStrip game={game} localId={localId} />
-        <Table game={game} localId={localId} />
+        <Table game={game} localId={localId} onTrumpShown={setTrumpOnTable} />
         {bottom}
         <Hand
           cards={me.hand}
@@ -115,12 +145,7 @@ export const GameScreen = ({
       </main>
 
       {showRoundSummary && (
-        <RoundSummary
-          game={game}
-          localId={localId}
-          onReady={() => dispatch({ type: 'ready', playerId: localId })}
-          onLeave={onLeave}
-        />
+        <RoundSummary game={game} localId={localId} onReady={ready} onLeave={onLeave} />
       )}
 
       {panel === 'scoreboard' && (

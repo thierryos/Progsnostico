@@ -6,6 +6,7 @@ import type { GameState, Player } from '../../game/types';
 import { useI18n } from '../../i18n';
 import { SUIT_TEXT_ON_DARK, SuitIcon } from '../SuitIcon';
 import { Button } from '../ui/Button';
+import { Kbd } from '../ui/Kbd';
 
 const Stat = ({
   label,
@@ -38,6 +39,22 @@ export const PlayerBar = ({ game, me, hint }: PlayerBarProps) => {
   const playing = myTurn && game.phase === 'playing';
   const leading = playing && game.tableCards.length === 0;
   const trumpSuit = game.trumpCard?.suit ?? null;
+  const goalStatus = bidStatus(me);
+
+  // Meta da rodada em palavras: quantos duelos ainda faltam para acertar o palpite.
+  const missing = me.currentBid === null ? null : me.currentBid - me.tricksWon;
+  const goal =
+    missing === null
+      ? null
+      : missing > 0
+        ? missing === 1
+          ? t('needOne')
+          : t('needMany', { n: missing })
+        : missing === 0
+          ? me.currentBid === 0
+            ? t('avoidWins')
+            : t('onSpot')
+          : t('busted');
 
   // Dica para quem está aprendendo: o que pode ser jogado agora e por quê.
   let tip: ReactNode = null;
@@ -88,7 +105,7 @@ export const PlayerBar = ({ game, me, hint }: PlayerBarProps) => {
   }
 
   return (
-    <div className="mx-auto w-full max-w-5xl shrink-0 px-3 pb-1">
+    <div className="mx-auto w-full max-w-3xl shrink-0 px-3 pb-1">
       <div className="flex items-center gap-2">
         <div className="flex min-w-0 flex-col leading-none">
           <span className="truncate text-xl text-white short:text-lg">{me.name}</span>
@@ -97,13 +114,23 @@ export const PlayerBar = ({ game, me, hint }: PlayerBarProps) => {
           </span>
         </div>
         <div className="min-w-0 flex-1 truncate text-center text-lg">{status}</div>
-        <div className="flex shrink-0 gap-3 rounded-xl border-2 border-slate-700 bg-slate-900/90 px-3 py-1 short:py-0">
+        <div className="relative flex shrink-0 gap-3 rounded-xl border-2 border-slate-700 bg-slate-900/90 px-3 py-1 short:py-0">
           <Stat label={t('bid')} value={me.currentBid ?? '–'} className="text-balatro-blue" />
-          <Stat label={t('won')} value={me.tricksWon} className={BID_STATUS_COLOR[bidStatus(me)]} />
+          <Stat label={t('won')} value={me.tricksWon} className={BID_STATUS_COLOR[goalStatus]} />
+          {goal && (
+            <span
+              key={goal}
+              className={`absolute -bottom-2 left-1/2 -translate-x-1/2 animate-pop rounded-full border border-current bg-slate-950 px-1.5 text-sm leading-tight whitespace-nowrap uppercase ${BID_STATUS_COLOR[goalStatus]}`}
+            >
+              {goal}
+            </span>
+          )}
         </div>
       </div>
       {tip && hint !== 'tapAgain' && (
-        <p className="mt-0.5 text-center text-base leading-tight text-slate-200 animate-in fade-in">
+        <p
+          className={`text-center text-base leading-tight text-slate-200 animate-in fade-in ${goal ? 'mt-2' : 'mt-0.5'}`}
+        >
           {tip}
         </p>
       )}
@@ -131,7 +158,10 @@ export const BidPanel = ({ game, me, onBid }: BidPanelProps) => {
             {t('bidsSoFar', { sum: bidsSum(game), cards: cardsThisRound(game) })}
           </span>
         </div>
-        <p className="text-base leading-tight text-slate-400 short:hidden">{t('bidTip')}</p>
+        <p className="text-base leading-tight text-slate-400 short:hidden">
+          {t('bidTip')}
+          <span className="hidden pointer-fine:inline"> {t('bidKeys')}</span>
+        </p>
         <div className="mt-2 flex flex-wrap justify-center gap-2 short:mt-0 short:gap-1.5">
           {options.map((n) => (
             <button
@@ -178,7 +208,7 @@ export const TrickSummaryPanel = ({ game, me, onReady }: TrickSummaryPanelProps)
         <div className="min-w-0 flex-1 leading-tight">
           <div className="text-sm tracking-widest text-slate-400 uppercase">{t('trickWinner')}</div>
           <div className="truncate text-2xl text-white">{winner?.name ?? '?'}</div>
-          {reason && <div className="truncate text-base text-balatro-gold">{reason}</div>}
+          {reason && <div className="text-base text-balatro-gold">{reason}</div>}
         </div>
         <Button
           variant="success"
@@ -188,6 +218,7 @@ export const TrickSummaryPanel = ({ game, me, onReady }: TrickSummaryPanelProps)
           className="shrink-0 short:min-h-10 short:text-lg"
         >
           {me.isReady ? t('waitingOthers', { n: pending }) : t('readyNext')}
+          {!me.isReady && <Kbd>{t('keyEnter')}</Kbd>}
         </Button>
       </div>
     </div>

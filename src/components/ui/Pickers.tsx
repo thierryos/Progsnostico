@@ -99,10 +99,8 @@ export const ModePicker = ({
           onClick={() => onChange(m.id)}
           className={`rounded-xl border-2 p-3 text-left transition-colors ${value === m.id ? 'border-white bg-balatro-blue text-white' : 'border-slate-600 bg-slate-900 text-slate-300'}`}
         >
-          <span className="flex items-baseline justify-between gap-2">
-            <span className="text-xl">{m.title}</span>
-            <span className="text-sm opacity-70">{m.path}</span>
-          </span>
+          <span className="block text-xl leading-tight">{m.title}</span>
+          <span className="block text-base leading-tight opacity-70">{m.path}</span>
           <span className="block text-base leading-snug opacity-80">{m.desc}</span>
         </button>
       ))}

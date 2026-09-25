@@ -5,10 +5,13 @@ import type { GameState } from '../../game/types';
 import { useI18n } from '../../i18n';
 import { getVolume, setVolume } from '../../lib/sound';
 import { PlayingCard } from '../PlayingCard';
+import { SUIT_TEXT_ON_DARK, SuitIcon } from '../SuitIcon';
 import { IconButton } from '../ui/Button';
 
 interface TopBarProps {
   game: GameState;
+  /** Mostra o trunfo aqui quando ele não coube na mesa (celular deitado, mesa lotada). */
+  showTrump: boolean;
   /** Conteúdo central (oponentes), exibido só em telas baixas. */
   center?: ReactNode;
   onOpenScoreboard: () => void;
@@ -19,6 +22,7 @@ interface TopBarProps {
 
 export const TopBar = ({
   game,
+  showTrump,
   center,
   onOpenScoreboard,
   onOpenHistory,
@@ -27,38 +31,48 @@ export const TopBar = ({
 }: TopBarProps) => {
   const { t } = useI18n();
   const cards = cardsThisRound(game);
+  const trumpSuit = game.trumpCard?.suit ?? null;
 
   return (
     <header className="flex h-14 shrink-0 items-center gap-2 px-2 short:h-12 sm:gap-3 sm:px-3">
-      <div className="flex shrink-0 flex-col leading-none">
-        <span className="text-sm tracking-wider text-slate-400 uppercase">{t('round')}</span>
-        <span className="text-2xl text-white">
+      <div className="flex shrink-0 gap-3">
+        <Counter label={t('round')}>
           {game.roundIndex + 1}
           <span className="text-lg text-slate-500">/{game.roundSequence.length}</span>
-        </span>
+        </Counter>
+        {/* Com o trunfo aqui, em telas estreitas não cabe tudo: a mão já mostra as cartas. */}
+        <Counter label={t('cards')} className={showTrump ? 'max-[400px]:hidden' : ''}>
+          {cards}
+        </Counter>
       </div>
 
-      <div
-        id="trump-card-fallback"
-        className="flex shrink-0 items-center gap-1.5 rounded-lg bg-black/40 p-1 pr-2"
-      >
-        {game.trumpCard ? (
-          <PlayingCard card={game.trumpCard} width={28} trump className="animate-pop" />
-        ) : (
-          <div className="grid h-[39px] w-7 place-items-center rounded border border-dashed border-white/30 text-xs text-white/40">
-            ✕
+      {showTrump && (
+        <div
+          id="trump-card-fallback"
+          className="flex shrink-0 items-center gap-1.5 rounded-lg border border-balatro-gold/50 bg-black/40 p-1 pr-2"
+        >
+          {game.trumpCard ? (
+            <PlayingCard card={game.trumpCard} width={28} trump className="animate-pop" />
+          ) : (
+            <div className="grid h-[39px] w-7 place-items-center rounded border border-dashed border-white/30 text-xs text-white/40">
+              ✕
+            </div>
+          )}
+          <div className="flex flex-col leading-none max-[400px]:hidden">
+            <span className="text-sm text-balatro-gold uppercase">
+              {trumpSuit ? t('trump') : t('noTrump')}
+            </span>
+            {trumpSuit && (
+              <span
+                className={`flex items-center gap-0.5 text-base uppercase ${SUIT_TEXT_ON_DARK[trumpSuit]}`}
+              >
+                <SuitIcon suit={trumpSuit} size={12} />
+                {t(`suit_${trumpSuit}`)}
+              </span>
+            )}
           </div>
-        )}
-        {/* Em telas estreitas fica só a carta: o trunfo aparece grande na mesa. */}
-        <div className="flex flex-col leading-none max-[400px]:hidden">
-          <span className="text-sm text-balatro-gold uppercase">
-            {game.trumpCard ? t('trump') : t('noTrump')}
-          </span>
-          <span className="text-sm text-slate-400">
-            {cards === 1 ? t('cardsOne') : t('cardsMany', { n: cards })}
-          </span>
         </div>
-      </div>
+      )}
 
       {center && <div className="hidden min-w-0 flex-1 justify-center short:flex">{center}</div>}
 
@@ -82,6 +96,21 @@ export const TopBar = ({
     </header>
   );
 };
+
+const Counter = ({
+  label,
+  className = '',
+  children,
+}: {
+  label: string;
+  className?: string;
+  children: ReactNode;
+}) => (
+  <div className={`flex flex-col leading-none ${className}`}>
+    <span className="text-sm tracking-wider text-slate-400 uppercase">{label}</span>
+    <span className="text-2xl text-white">{children}</span>
+  </div>
+);
 
 const VolumeControl = () => {
   const { t } = useI18n();

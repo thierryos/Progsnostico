@@ -23,7 +23,9 @@ SIZES = {
     "phone": (390, 844, True),
     "landscape": (844, 390, True),
     "tablet": (768, 1024, True),
+    "laptop": (1366, 768, False),
     "desktop": (1280, 800, False),
+    "wide": (1920, 950, False),
 }
 
 errors: list[str] = []

@@ -15,12 +15,17 @@ React, TypeScript e Firebase Realtime Database. Jogue em **https://thierryos.git
 
 - 📱 **Mobile first**: layout em coluna para celular em pé, barra compacta para celular deitado,
   placar lateral no desktop. Toque seleciona a carta, segundo toque joga.
+- 🖥️ **Bom no PC também**: a interface cresce em monitores grandes, o trunfo aparece grande na
+  mesa e há atalhos (número = palpite, Enter = próximo duelo/rodada); a aba avisa "SUA VEZ".
 - 🌐 **Online** com salas públicas/privadas e link direto para a sala
   (`/Progsnostico/room/CODIGO`); rotas `/lobby`, `/offline`, `/tutorial` e botão voltar do
   celular funcionando dentro do jogo.
 - 🃏 **Cartas em 3D** (estilo Balatro) e **trunfo em destaque**: painel na mesa e película
   holográfica com coroa em toda carta de trunfo; dicas do que pode ser jogado e de por que
   alguém venceu o duelo — pensado para quem nunca jogou.
+- 🪑 **Mesa com assentos**: cada jogador tem o seu lugar marcado, o de quem joga agora pisca e,
+  no palpite, o número pedido aparece no lugar de cada um. A meta da rodada vem em palavras
+  ("FALTA 1", "NA MOSCA", "EVITE VENCER") e o palpite dos oponentes vira bolinhas.
 - ✨ **Efeitos de tela** (Suave, Retrô ou Desligado) em Configurações.
 - 🤖 **Offline contra bots** e **tutorial interativo** (não usam rede).
 - 🔁 **Reconexão**: recarregou a página? Volta para a mesma mesa. Caiu a conexão? Um bot joga

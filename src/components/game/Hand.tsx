@@ -58,7 +58,7 @@ export const Hand = ({
   const pointerType = useRef<string>('mouse');
 
   const n = cards.length;
-  const cardW = clamp(Math.min(width / 4.4, windowHeight * 0.14), 50, 120);
+  const cardW = clamp(Math.min(width / 4.4, windowHeight * 0.14), 50, 140);
   const cardH = Math.round(cardW * CARD_RATIO);
   const usable = Math.max(cardW, width - FAN_PAD * 2);
   const step = n > 1 ? Math.min(cardW + 6, (usable - cardW) / (n - 1)) : 0;
