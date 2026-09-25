@@ -1,21 +1,8 @@
-export const ROOM_PARAM = 'sala';
+import { routePath } from './router';
 
-export const roomLink = (code: string) => {
-  const url = new URL(import.meta.env.BASE_URL, window.location.origin);
-  url.searchParams.set(ROOM_PARAM, code);
-  return url.toString();
-};
-
-/** Lê (e remove da barra de endereço) o código de sala de um link de convite. */
-export const consumeRoomParam = (): string | null => {
-  const url = new URL(window.location.href);
-  const code = url.searchParams.get(ROOM_PARAM);
-  if (code) {
-    url.searchParams.delete(ROOM_PARAM);
-    window.history.replaceState(null, '', url.toString());
-  }
-  return code;
-};
+/** Link de convite: https://…/Progsnostico/room/CODIGO */
+export const roomLink = (code: string) =>
+  new URL(routePath({ name: 'room', code }), window.location.origin).toString();
 
 /** Usa a folha de compartilhamento nativa no celular; no desktop, copia o link. */
 export const shareRoom = async (

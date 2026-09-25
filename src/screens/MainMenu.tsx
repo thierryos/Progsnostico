@@ -39,6 +39,7 @@ const CardFan = () => (
         <PlayingCard
           card={card}
           width={66}
+          idle={i}
           style={{ rotate: `${rotate}deg` }}
           className="shadow-[3px_6px_0_rgb(0_0_0/0.45)]"
         />

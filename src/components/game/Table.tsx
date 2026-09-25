@@ -5,7 +5,14 @@ import { useI18n } from '../../i18n';
 import { WinBurst } from '../fx/WinBurst';
 import { PlayingCard } from '../PlayingCard';
 import { SUIT_TEXT_ON_DARK, SuitIcon } from '../SuitIcon';
-import { WINNER_SCALE, layoutTable } from './tableLayout';
+import {
+  LEAD_CHIP,
+  OVERLAP_TOLERANCE,
+  WINNER_SCALE,
+  blockHeight,
+  layoutTable,
+  trumpPanel,
+} from './tableLayout';
 
 /** Rotação "aleatória" estável por carta, para a mesa parecer natural. */
 const tilt = (id: string) => {
@@ -24,9 +31,16 @@ export const Table = ({ game, localId }: { game: GameState; localId: string }) =
     0,
     game.players.findIndex((p) => p.id === localId),
   );
-  const layout = layoutTable(width, height, n);
+  const panel = trumpPanel(width);
+  const layout = layoutTable(width, height, n, [LEAD_CHIP, panel.rect]);
   const cardW = layout.cardW;
   const winnerId = game.phase === 'trick_summary' ? game.trickResult?.winnerId : undefined;
+  const trumpSuit = game.trumpCard?.suit ?? null;
+  // Na fileira (mesa baixa) o painel só aparece se couber acima das cartas.
+  const showTrumpPanel =
+    width > 0 &&
+    (layout.mode === 'ring' ||
+      height / 2 - blockHeight(cardW) / 2 >= panel.rect.y + panel.rect.h - OVERLAP_TOLERANCE);
 
   return (
     <div className="relative min-h-0 flex-1 px-2 pb-2">
@@ -56,6 +70,48 @@ export const Table = ({ game, localId }: { game: GameState; localId: string }) =
                 <SuitIcon suit={game.leadSuit} size={16} />
                 {t(`suit_${game.leadSuit}`)}
               </span>
+            </div>
+          )}
+
+          {showTrumpPanel && (
+            <div
+              id="trump-card"
+              className="absolute z-30 flex items-center gap-2 rounded-xl border border-balatro-gold/60 bg-black/60 p-1.5 shadow-[0_0_18px_rgb(234_179_8/0.25)] animate-in fade-in zoom-in-90 short:hidden"
+              style={{
+                left: panel.rect.x,
+                top: panel.rect.y,
+                width: panel.rect.w,
+                height: panel.rect.h,
+              }}
+            >
+              {game.trumpCard ? (
+                <PlayingCard card={game.trumpCard} width={panel.cardW} trump tilt idle={0} />
+              ) : (
+                <div
+                  className="grid shrink-0 place-items-center rounded-md border-2 border-dashed border-white/30 text-white/40"
+                  style={{ width: panel.cardW, height: panel.rect.h - 12 }}
+                >
+                  ✕
+                </div>
+              )}
+              <div className="flex min-w-0 flex-col leading-none">
+                <span className="text-xs tracking-widest text-balatro-gold uppercase">
+                  {t('trump')}
+                </span>
+                {trumpSuit ? (
+                  <span
+                    className={`flex items-center gap-1 text-base uppercase ${SUIT_TEXT_ON_DARK[trumpSuit]}`}
+                  >
+                    <SuitIcon suit={trumpSuit} size={14} />
+                    {t(`suit_${trumpSuit}`)}
+                  </span>
+                ) : (
+                  <span className="text-base text-slate-300 uppercase">{t('noTrump')}</span>
+                )}
+                <span className="mt-0.5 text-sm leading-tight text-slate-300">
+                  {trumpSuit ? t('trumpBeats') : t('noTrumpHint')}
+                </span>
+              </div>
             </div>
           )}
 
@@ -91,13 +147,14 @@ export const Table = ({ game, localId }: { game: GameState; localId: string }) =
                       width={cardW}
                       highlighted={isWinner}
                       shine={isWinner}
+                      trump={played.card.suit === trumpSuit}
                     />
                   </div>
                   {isWinner && (
                     <>
                       <WinBurst radius={cardW * 0.95} />
-                      <span className="absolute -top-2 -right-2 z-40 animate-pop rounded-full border-2 border-white bg-green-500 p-1 text-black shadow-lg">
-                        <Trophy size={14} />
+                      <span className="absolute -top-3 left-1/2 z-40 -translate-x-1/2 animate-pop rounded-full border-2 border-white bg-green-500 p-1 text-black shadow-lg">
+                        <Trophy size={cardW < 70 ? 11 : 14} />
                       </span>
                     </>
                   )}

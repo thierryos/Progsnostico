@@ -18,19 +18,31 @@ adapte para `short:` (celular deitado), `sm:`, `lg:` (desktop com placar lateral
 - **Telas baixas**: variante `short:` (definida em `src/index.css`, `max-height: 520px`). Nelas os
   oponentes sobem para a `TopBar` e os painéis ficam compactos.
 - **Cartas**: `PlayingCard` recebe `width` em px e escala tudo via container queries (`cqw`).
+  É "3D estilo Balatro" em camadas: raiz (tamanho/perspectiva/animações de quem usa), corpo
+  (`idle` = balanço com a propriedade `rotate`; `tilt` = inclinação do mouse via `transform`) e
+  face. `trump` aplica película holográfica + coroa — **toda carta de trunfo exibida deve
+  receber `trump`** (mão, mesa, histórico), é o que ensina o iniciante a reconhecê-lo.
   Tamanhos vêm de cálculo, nunca de classes fixas:
   - mão: `Hand.tsx` (cabe na largura, sobreposição automática);
   - mesa: `layoutTable()` em `components/game/tableLayout.ts` — **toda mudança ali precisa
-    manter `tableLayout.test.ts` verde** (garante que as cartas não se cobrem em 5 tamanhos × 2–7
+    manter `tableLayout.test.ts` verde** (cartas não se cobrem nem cobrem os cantos reservados:
+    selo do naipe puxado `LEAD_CHIP` e painel do trunfo `trumpPanel`, em 5 tamanhos × 2–7
     jogadores).
 - **Toque**: alvos de no mínimo 40px (`IconButton` = `size-10`, botões `min-h-10`+). Nada pode
   depender de hover (tooltips): a informação fica visível ou aparece no toque. Carta: 1º toque
   seleciona, 2º joga; mouse joga com 1 clique.
 - **Modais**: sempre `<Sheet>` (bottom sheet no celular, diálogo centralizado a partir de `sm`).
   Nada de `alert()`/`prompt()`/`confirm()` — use `useNotice()` e `PasswordDialog`.
+- **Botão voltar** (Android/navegador): `useBackHandler()` (`lib/back.ts`). O `Sheet` já fecha
+  com voltar; a partida pede confirmação; a sala de espera sai da sala. Tela nova com estado
+  interno (ex.: formulário) deve registrar o seu.
+- **Para leigos**: a barra do jogador explica o que pode ser jogado ("Você precisa jogar Copas",
+  "Sem Copas: jogue qualquer carta — trunfo vence!") e o resumo da vaza diz por que alguém venceu.
+  Mudou regra de jogada? Atualize essas dicas.
 - **Camadas (z-index)**: conteúdo 0–30 · popovers 40 · sheets 50 · confete 55 · holofote do
   tutorial 60–65 · avisos 70 · pós-processamento CRT 80 (sempre `pointer-events-none`).
-  O tutorial destaca elementos pelo **id** — não renomeie: `local-hand`, `trump-card`,
+  O tutorial destaca elementos pelo **id** — não renomeie: `local-hand`, `trump-card` (painel da
+  mesa; se estiver escondido usa `trump-card-fallback`, o chip do topo),
   `table-area`, `trick-summary`, `round-summary`, `history-btn`, `help-btn`, `bid-btn-N`,
   `card-<rank>-<naipe>`.
 

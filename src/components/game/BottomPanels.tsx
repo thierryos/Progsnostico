@@ -35,9 +35,30 @@ export const PlayerBar = ({ game, me, hint }: PlayerBarProps) => {
   const { t } = useI18n();
   const myTurn = game.currentTurn === me.id;
   const turnPlayer = game.players.find((p) => p.id === game.currentTurn);
-  const mustFollow =
-    myTurn && game.leadSuit && me.hand.some((c) => c.suit === game.leadSuit) ? game.leadSuit : null;
-  const leading = myTurn && game.phase === 'playing' && game.tableCards.length === 0;
+  const playing = myTurn && game.phase === 'playing';
+  const leading = playing && game.tableCards.length === 0;
+  const trumpSuit = game.trumpCard?.suit ?? null;
+
+  // Dica para quem está aprendendo: o que pode ser jogado agora e por quê.
+  let tip: ReactNode = null;
+  if (leading) {
+    tip = t('leadAny');
+  } else if (playing && game.leadSuit) {
+    const lead = game.leadSuit;
+    const suitName = t(`suit_${lead}`);
+    const hasLead = me.hand.some((c) => c.suit === lead);
+    const hasTrump = trumpSuit !== null && me.hand.some((c) => c.suit === trumpSuit);
+    tip = (
+      <span className={`inline-flex items-center gap-1 ${SUIT_TEXT_ON_DARK[lead]}`}>
+        <SuitIcon suit={lead} size={12} />
+        {hasLead
+          ? t('mustFollow', { suit: suitName })
+          : hasTrump
+            ? t('noLeadTrump', { suit: suitName })
+            : t('noLeadDiscard', { suit: suitName })}
+      </span>
+    );
+  }
 
   let status: ReactNode = null;
   if (hint === 'tapAgain') {
@@ -54,12 +75,6 @@ export const PlayerBar = ({ game, me, hint }: PlayerBarProps) => {
             t('yourTurn')
           )}
         </span>
-        {mustFollow && (
-          <span className={`flex items-center gap-1 text-sm ${SUIT_TEXT_ON_DARK[mustFollow]}`}>
-            <SuitIcon suit={mustFollow} size={12} />
-            {t('mustFollow', { suit: t(`suit_${mustFollow}`) })}
-          </span>
-        )}
       </span>
     );
   } else if (turnPlayer) {
@@ -73,18 +88,25 @@ export const PlayerBar = ({ game, me, hint }: PlayerBarProps) => {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl shrink-0 items-center gap-2 px-3 pb-1">
-      <div className="flex min-w-0 flex-col leading-none">
-        <span className="truncate text-xl text-white short:text-lg">{me.name}</span>
-        <span className="text-lg text-balatro-blue">
-          {me.score} {t('points')}
-        </span>
+    <div className="mx-auto w-full max-w-5xl shrink-0 px-3 pb-1">
+      <div className="flex items-center gap-2">
+        <div className="flex min-w-0 flex-col leading-none">
+          <span className="truncate text-xl text-white short:text-lg">{me.name}</span>
+          <span className="text-lg text-balatro-blue">
+            {me.score} {t('points')}
+          </span>
+        </div>
+        <div className="min-w-0 flex-1 truncate text-center text-lg">{status}</div>
+        <div className="flex shrink-0 gap-3 rounded-xl border-2 border-slate-700 bg-slate-900/90 px-3 py-1 short:py-0">
+          <Stat label={t('bid')} value={me.currentBid ?? '–'} className="text-balatro-blue" />
+          <Stat label={t('won')} value={me.tricksWon} className={BID_STATUS_COLOR[bidStatus(me)]} />
+        </div>
       </div>
-      <div className="min-w-0 flex-1 truncate text-center text-lg">{status}</div>
-      <div className="flex shrink-0 gap-3 rounded-xl border-2 border-slate-700 bg-slate-900/90 px-3 py-1 short:py-0">
-        <Stat label={t('bid')} value={me.currentBid ?? '–'} className="text-balatro-blue" />
-        <Stat label={t('won')} value={me.tricksWon} className={BID_STATUS_COLOR[bidStatus(me)]} />
-      </div>
+      {tip && hint !== 'tapAgain' && (
+        <p className="mt-0.5 text-center text-base leading-tight text-slate-200 animate-in fade-in">
+          {tip}
+        </p>
+      )}
     </div>
   );
 };
@@ -109,6 +131,7 @@ export const BidPanel = ({ game, me, onBid }: BidPanelProps) => {
             {t('bidsSoFar', { sum: bidsSum(game), cards: cardsThisRound(game) })}
           </span>
         </div>
+        <p className="text-base leading-tight text-slate-400 short:hidden">{t('bidTip')}</p>
         <div className="mt-2 flex flex-wrap justify-center gap-2 short:mt-0 short:gap-1.5">
           {options.map((n) => (
             <button
@@ -138,6 +161,15 @@ export const TrickSummaryPanel = ({ game, me, onReady }: TrickSummaryPanelProps)
   const { t } = useI18n();
   const winner = game.players.find((p) => p.id === game.trickResult?.winnerId);
   const pending = game.players.filter((p) => !p.isReady).length;
+  const winningCard = game.trickResult?.winningCard;
+  const lead = game.trickHistory[game.trickHistory.length - 1]?.leadSuit;
+  const trumpSuit = game.trumpCard?.suit ?? null;
+  const reason =
+    winningCard && lead
+      ? winningCard.suit === trumpSuit && lead !== trumpSuit
+        ? t('wonByTrump', { suit: t(`suit_${winningCard.suit}`) })
+        : t('wonByHighest', { suit: t(`suit_${lead}`) })
+      : null;
 
   return (
     <div id="trick-summary" className="mx-auto w-full max-w-2xl shrink-0 px-2 pb-1">
@@ -146,6 +178,7 @@ export const TrickSummaryPanel = ({ game, me, onReady }: TrickSummaryPanelProps)
         <div className="min-w-0 flex-1 leading-tight">
           <div className="text-sm tracking-widest text-slate-400 uppercase">{t('trickWinner')}</div>
           <div className="truncate text-2xl text-white">{winner?.name ?? '?'}</div>
+          {reason && <div className="truncate text-base text-balatro-gold">{reason}</div>}
         </div>
         <Button
           variant="success"

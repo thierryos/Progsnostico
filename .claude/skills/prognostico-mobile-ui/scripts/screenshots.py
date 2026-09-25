@@ -237,14 +237,90 @@ def flow_online(browser: Browser, size: str, out: Path) -> None:
     ctx.close()
 
 
-FLOWS = {"game": flow_game, "sheets": flow_sheets, "tutorial": flow_tutorial, "online": flow_online}
+def flow_routes(browser: Browser, size: str, out: Path) -> None:
+    """Rotas e botão voltar: /lobby, /room/CODIGO (link direto), voltar em modal, sala e partida."""
+    w, h, touch = SIZES[size]
+    ctx = browser.new_context(viewport={"width": w, "height": h}, has_touch=touch, is_mobile=touch)
+    ctx.add_init_script("try{localStorage.setItem('prog.lang','pt')}catch(e){}")
+    host, guest = ctx.new_page(), ctx.new_page()
+    attach(host, f"routes-host/{size}")
+    attach(guest, f"routes-guest/{size}")
+
+    def check(cond: bool, msg: str) -> None:
+        if not cond:
+            errors.append(f"[routes/{size}] {msg}")
+
+    host.goto(BASE)
+    host.wait_for_timeout(600)
+    host.fill("#player-name", "Host")
+    host.get_by_role("button", name="JOGAR ONLINE").click()
+    host.wait_for_timeout(400)
+    check(host.url.endswith("/lobby"), f"lista de salas deveria ser /lobby, veio {host.url}")
+    host.get_by_role("button", name="CRIAR SALA").click()
+    host.locator("form button[type=submit]").click()
+    host.wait_for_timeout(800)
+    check("/room/" in host.url, f"sala deveria estar em /room/CODIGO, veio {host.url}")
+    code = host.url.rstrip("/").split("/")[-1]
+
+    # Link direto sem nome salvo: menu mostra o código, entra depois do nome.
+    guest.goto(BASE)
+    guest.evaluate("localStorage.removeItem('prog.name')")
+    guest.goto(f"{BASE}room/{code}")
+    guest.wait_for_timeout(800)
+    check(guest.locator("#player-name").count() == 1, "link direto sem nome deveria abrir o menu")
+    guest.fill("#player-name", "Convidado")
+    guest.get_by_role("button", name="JOGAR ONLINE").click()
+    guest.wait_for_timeout(1200)
+    check(guest.url.endswith(f"/room/{code}"), f"convidado deveria estar na sala, veio {guest.url}")
+    guest.screenshot(path=out / f"{size}-30-routes-guest-joined.png")
+
+    # Voltar na sala de espera = sair da sala.
+    guest.go_back()
+    guest.wait_for_timeout(1200)
+    check("/room/" not in guest.url, f"voltar deveria sair da sala, URL {guest.url}")
+    check(host.get_by_text("Convidado").count() == 0, "host ainda vê o convidado depois que ele saiu")
+
+    # Entra de novo pelo link (agora com nome salvo: direto).
+    guest.goto(f"{BASE}room/{code}")
+    guest.wait_for_timeout(1500)
+    guest.get_by_role("button", name="ESTOU PRONTO").click()
+    host.wait_for_timeout(500)
+    host.get_by_role("button", name="INICIAR").click()
+    host.wait_for_timeout(1200)
+
+    # Na partida: voltar fecha o modal; depois pede confirmação de saída (sem sair da URL).
+    host.locator("#help-btn").click()
+    host.wait_for_timeout(300)
+    host.go_back()
+    host.wait_for_timeout(400)
+    check(host.locator("[role=dialog]").count() == 0, "voltar deveria fechar o manual")
+    host.go_back()
+    host.wait_for_timeout(400)
+    check(host.get_by_text("Sair da partida?").count() == 1, "voltar na partida deveria pedir confirmação")
+    check(host.url.endswith(f"/room/{code}"), f"URL deveria continuar na sala, veio {host.url}")
+    host.screenshot(path=out / f"{size}-31-routes-exit-confirm.png")
+
+    # Recarregar no meio da partida volta para a mesa.
+    guest.reload()
+    guest.wait_for_timeout(2000)
+    check(guest.locator("#table-area").count() == 1, "recarregar deveria voltar para a mesa")
+    ctx.close()
+
+
+FLOWS = {
+    "game": flow_game,
+    "sheets": flow_sheets,
+    "tutorial": flow_tutorial,
+    "online": flow_online,
+    "routes": flow_routes,
+}
 
 if __name__ == "__main__":
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")  # console do Windows (cp1252)
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--base", default="http://127.0.0.1:5173/Progsnostico/")
     parser.add_argument("--out", default="screenshots")
-    parser.add_argument("--flows", default="game,sheets,tutorial,online")
+    parser.add_argument("--flows", default="game,sheets,tutorial,online,routes")
     parser.add_argument("--sizes", default="phone,landscape,desktop")
     args = parser.parse_args()
 

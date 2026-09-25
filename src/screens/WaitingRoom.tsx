@@ -3,6 +3,7 @@ import { MAX_PLAYERS, MIN_PLAYERS, maxCardsPerPlayer, roundSequence } from '../g
 import { getHostId } from '../game/engine';
 import type { GameAction, GameState } from '../game/types';
 import { useI18n } from '../i18n';
+import { useBackHandler } from '../lib/back';
 import { PlayerAvatar } from '../components/PlayerAvatar';
 import { Button, IconButton } from '../components/ui/Button';
 import { ModePicker, NumberPicker, Stepper } from '../components/ui/Pickers';
@@ -40,6 +41,12 @@ export const WaitingRoom = ({
     settings.gameMode,
     handLimit,
   ).length;
+
+  // Voltar na sala de espera = sair da sala (sem deixar um "fantasma" na lista).
+  useBackHandler(() => {
+    onLeave();
+    return true;
+  });
 
   const update = (patch: Partial<GameState['settings']>) =>
     dispatch({ type: 'updateSettings', by: localId, settings: patch });

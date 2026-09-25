@@ -42,8 +42,10 @@ race condition que o projeto antigo tinha.
   ausência. Duas autoridades momentâneas são inofensivas porque o motor é idempotente.
 - **Ausente**: humano fora de `presence` por 30 s → `setAway(true)`; na sala de espera ele é
   removido, na partida um bot joga por ele. Ao voltar, o próprio cliente envia `setAway(false)`.
-- **Recarregar a página**: `sessionStorage` guarda `prog.playerId` e `prog.room`;
-  `App.tsx` chama `resumeRoom` e volta para a mesa.
+- **Rotas**: a sala vive em `/room/CODIGO` (`lib/router.ts`). Abrir ou recarregar esse endereço
+  chama `resumeRoom` (volta para a cadeira) ou, se a pessoa não é membro, entra pelo fluxo normal
+  (senha, sala cheia…). `sessionStorage` guarda só `prog.playerId` (identidade por aba).
+- **Voltar do navegador** na sala de espera chama `leaveRoom` (senão fica um jogador "fantasma").
 - `trackPresence` usa `.info/connected` para regravar a presença a cada reconexão.
 
 ## Serialização (`net/serialize.ts`)

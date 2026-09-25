@@ -1,6 +1,8 @@
 /// <reference types="vitest/config" />
+import { copyFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
@@ -12,10 +14,23 @@ const fakeFirebase: Record<string, string> = {
   'firebase/database': fake('database.ts'),
 };
 
+/**
+ * GitHub Pages não conhece as rotas do app (/room/CODIGO, /lobby…): para qualquer caminho
+ * desconhecido ele serve o 404.html. Copiando o index.html para lá, o app abre em qualquer rota.
+ */
+const spaFallback = (): Plugin => ({
+  name: 'spa-404-fallback',
+  apply: 'build',
+  closeBundle() {
+    const dist = resolve(fileURLToPath(new URL('.', import.meta.url)), 'dist');
+    copyFileSync(resolve(dist, 'index.html'), resolve(dist, '404.html'));
+  },
+});
+
 export default defineConfig(({ mode }) => ({
   // Caminho do repositório no GitHub Pages (https://thierryos.github.io/Progsnostico/)
   base: '/Progsnostico/',
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), spaFallback()],
   resolve: {
     alias: mode === 'fakedb' ? fakeFirebase : {},
   },
