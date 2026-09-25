@@ -39,6 +39,7 @@ const CardFan = () => (
         <PlayingCard
           card={card}
           width={66}
+          idle={i}
           style={{ rotate: `${rotate}deg` }}
           className="shadow-[3px_6px_0_rgb(0_0_0/0.45)]"
         />
@@ -168,7 +169,7 @@ export const MainMenu = ({
         </form>
       </div>
 
-      <footer className="pt-4 text-sm text-slate-400/70">v1.1.0 · Firebase</footer>
+      <footer className="pt-4 text-sm text-slate-400/70">v1.2.0 · Firebase</footer>
 
       {showSettings && <SettingsSheet onClose={() => setShowSettings(false)} />}
     </div>

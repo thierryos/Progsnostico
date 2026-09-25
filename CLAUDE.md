@@ -19,6 +19,8 @@ sem servidor próprio.
 - `src/net/` Firebase: `firebase.ts` (ações via transação), `serialize.ts`, `fake/` (banco falso).
 - `src/rooms/` controladores: `OnlineRoom` (presença, autoridade, ausência), `OfflineRoom`.
 - `src/screens/`, `src/components/` interface; `src/tutorial/` roteiro + holofote; `src/i18n/` pt/en/es.
+- `src/lib/router.ts` rotas (`/`, `/lobby`, `/room/CODIGO`, `/offline`, `/tutorial`); `lib/back.ts`
+  botão voltar; o build gera `404.html` para as rotas funcionarem no GitHub Pages.
 
 ## Regras do projeto
 

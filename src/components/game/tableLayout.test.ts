@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { CARD_RATIO } from '../PlayingCard';
-import { LABEL_H, OVERLAP_TOLERANCE as TOLERANCE, layoutTable } from './tableLayout';
+import {
+  LABEL_H,
+  LEAD_CHIP,
+  OVERLAP_TOLERANCE as TOLERANCE,
+  layoutTable,
+  trumpPanel,
+} from './tableLayout';
 
 /** Tamanhos reais medidos da área da mesa (px CSS) em vários aparelhos. */
 const TABLES = {
@@ -15,7 +21,8 @@ describe('layout da mesa', () => {
   for (const [device, [w, h]] of Object.entries(TABLES)) {
     for (let n = 2; n <= 7; n++) {
       it(`${device} com ${n} jogadores: cartas dentro da mesa e sem se cobrir`, () => {
-        const layout = layoutTable(w, h, n);
+        const reserved = [LEAD_CHIP, trumpPanel(w).rect];
+        const layout = layoutTable(w, h, n, reserved);
         const bw = layout.cardW;
         const bh = layout.cardW * CARD_RATIO + LABEL_H;
         const boxes = Array.from({ length: n }, (_, i) => layout.position(i, i));
@@ -25,6 +32,17 @@ describe('layout da mesa', () => {
           expect(x + bw / 2).toBeLessThanOrEqual(w + 1);
           expect(y - bh / 2).toBeGreaterThanOrEqual(-1);
           expect(y + bh / 2).toBeLessThanOrEqual(h + 1);
+        }
+        if (layout.mode === 'ring') {
+          for (const { x, y } of boxes) {
+            for (const r of reserved) {
+              const ox = Math.min(x + bw / 2, r.x + r.w) - Math.max(x - bw / 2, r.x);
+              const oy = Math.min(y + bh / 2, r.y + r.h) - Math.max(y - bh / 2, r.y);
+              expect(Math.min(ox, oy), 'carta sobre um canto reservado').toBeLessThanOrEqual(
+                TOLERANCE,
+              );
+            }
+          }
         }
         for (let i = 0; i < n; i++) {
           for (let j = i + 1; j < n; j++) {
@@ -39,8 +57,10 @@ describe('layout da mesa', () => {
     }
   }
 
-  it('usa fileira em mesas baixas', () => {
+  it('usa fileira em mesas baixas e anel no celular em pé (mesmo com os cantos reservados)', () => {
     expect(layoutTable(828, 170, 4).mode).toBe('row');
-    expect(layoutTable(374, 467, 4).mode).toBe('ring');
+    for (let n = 2; n <= 7; n++) {
+      expect(layoutTable(374, 467, n, [LEAD_CHIP, trumpPanel(374).rect]).mode).toBe('ring');
+    }
   });
 });

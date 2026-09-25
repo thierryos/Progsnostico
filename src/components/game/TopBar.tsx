@@ -39,17 +39,18 @@ export const TopBar = ({
       </div>
 
       <div
-        id="trump-card"
+        id="trump-card-fallback"
         className="flex shrink-0 items-center gap-1.5 rounded-lg bg-black/40 p-1 pr-2"
       >
         {game.trumpCard ? (
-          <PlayingCard card={game.trumpCard} width={28} className="animate-pop" />
+          <PlayingCard card={game.trumpCard} width={28} trump className="animate-pop" />
         ) : (
           <div className="grid h-[39px] w-7 place-items-center rounded border border-dashed border-white/30 text-xs text-white/40">
             ✕
           </div>
         )}
-        <div className="flex flex-col leading-none">
+        {/* Em telas estreitas fica só a carta: o trunfo aparece grande na mesa. */}
+        <div className="flex flex-col leading-none max-[400px]:hidden">
           <span className="text-sm text-balatro-gold uppercase">
             {game.trumpCard ? t('trump') : t('noTrump')}
           </span>

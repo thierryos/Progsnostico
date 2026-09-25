@@ -1,5 +1,6 @@
 import { X } from 'lucide-react';
 import { useEffect, type ReactNode } from 'react';
+import { useBackHandler } from '../../lib/back';
 
 interface SheetProps {
   open: boolean;
@@ -27,6 +28,15 @@ export const Sheet = ({
   id,
   closeLabel = 'Fechar',
 }: SheetProps) => {
+  // Botão voltar (Android/navegador) fecha o modal em vez de sair da tela.
+  useBackHandler(
+    () => {
+      onClose?.();
+      return true;
+    },
+    open && Boolean(onClose),
+  );
+
   useEffect(() => {
     if (!open || !onClose) return;
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();

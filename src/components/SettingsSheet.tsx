@@ -1,14 +1,21 @@
 import { Volume2, VolumeX } from 'lucide-react';
 import { useState } from 'react';
-import { LANGUAGES, useI18n } from '../i18n';
-import { useSettings } from '../lib/settings';
+import { LANGUAGES, useI18n, type TranslationKey } from '../i18n';
+import { useSettings, type ScreenFx } from '../lib/settings';
 import { getVolume, setVolume } from '../lib/sound';
 import { Sheet } from './ui/Sheet';
 import { Switch } from './ui/Switch';
 
+const SCREEN_FX: { id: ScreenFx; label: TranslationKey; desc: TranslationKey }[] = [
+  { id: 'off', label: 'fxOff', desc: 'fxOffDesc' },
+  { id: 'soft', label: 'fxSoft', desc: 'fxSoftDesc' },
+  { id: 'retro', label: 'fxRetro', desc: 'fxRetroDesc' },
+];
+
 export const SettingsSheet = ({ onClose }: { onClose: () => void }) => {
   const { t, lang, setLang } = useI18n();
-  const { crt, motion, update } = useSettings();
+  const { screenFx, motion, update } = useSettings();
+  const current = SCREEN_FX.find((o) => o.id === screenFx) ?? SCREEN_FX[1];
   const [volume, setVolumeState] = useState(getVolume);
 
   const changeVolume = (value: number) => {
@@ -21,12 +28,24 @@ export const SettingsSheet = ({ onClose }: { onClose: () => void }) => {
       <div className="flex flex-col gap-5 p-4">
         <section className="flex flex-col gap-2">
           <h3 className="text-lg tracking-widest text-slate-400 uppercase">{t('fxTitle')}</h3>
-          <Switch
-            checked={crt}
-            onChange={(value) => update({ crt: value })}
-            label={t('fxCrt')}
-            description={t('fxCrtDesc')}
-          />
+          <div className="rounded-xl border-2 border-slate-700 bg-slate-900/70 p-3">
+            <div className="mb-2 text-xl text-white">{t('fxScreen')}</div>
+            <div className="grid grid-cols-3 gap-1.5" role="radiogroup" aria-label={t('fxScreen')}>
+              {SCREEN_FX.map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={screenFx === option.id}
+                  onClick={() => update({ screenFx: option.id })}
+                  className={`h-11 rounded-lg border-2 text-lg transition-colors ${screenFx === option.id ? 'border-white bg-balatro-blue text-white' : 'border-slate-600 bg-slate-950 text-slate-300'}`}
+                >
+                  {t(option.label)}
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 text-base text-slate-400">{t(current.desc)}</p>
+          </div>
           <Switch
             checked={motion}
             onChange={(value) => update({ motion: value })}

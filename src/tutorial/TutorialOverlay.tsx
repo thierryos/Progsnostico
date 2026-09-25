@@ -23,7 +23,11 @@ const useTargetRect = (targetId?: string) => {
       return;
     }
     const measure = () => {
-      const el = document.getElementById(targetId);
+      const visible = (el: HTMLElement | null) =>
+        el && el.getBoundingClientRect().width > 0 ? el : null;
+      const el =
+        visible(document.getElementById(targetId)) ??
+        visible(document.getElementById(`${targetId}-fallback`));
       const r = el?.getBoundingClientRect();
       const next =
         r && r.width > 0 ? { top: r.top, left: r.left, width: r.width, height: r.height } : null;

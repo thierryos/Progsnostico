@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useBackHandler } from '../lib/back';
 import { BidPanel, PlayerBar, TrickSummaryPanel } from '../components/game/BottomPanels';
 import { Hand } from '../components/game/Hand';
 import { HelpModal } from '../components/game/HelpModal';
@@ -45,6 +46,11 @@ export const GameScreen = ({
   const [panel, setPanel] = useState<Panel>('none');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   useGameFeedback(game, localId);
+  // Voltar no meio da partida não sai direto: abre a confirmação.
+  useBackHandler(() => {
+    setPanel('exit');
+    return true;
+  });
 
   const me = game.players.find((p) => p.id === localId);
   if (!me) return null;
@@ -104,8 +110,18 @@ export const GameScreen = ({
           onSelect={setSelectedId}
           onPlay={(card) => dispatch({ type: 'play', playerId: localId, cardId: card.id })}
           quickPlay={mode === 'tutorial'}
+          trumpSuit={game.trumpCard?.suit ?? null}
         />
       </main>
+
+      {showRoundSummary && (
+        <RoundSummary
+          game={game}
+          localId={localId}
+          onReady={() => dispatch({ type: 'ready', playerId: localId })}
+          onLeave={onLeave}
+        />
+      )}
 
       {panel === 'scoreboard' && (
         <Sheet
@@ -140,15 +156,6 @@ export const GameScreen = ({
             {mode === 'online' ? t('exitOnline') : t('exitOffline')}
           </p>
         </Sheet>
-      )}
-
-      {showRoundSummary && (
-        <RoundSummary
-          game={game}
-          localId={localId}
-          onReady={() => dispatch({ type: 'ready', playerId: localId })}
-          onLeave={onLeave}
-        />
       )}
     </div>
   );

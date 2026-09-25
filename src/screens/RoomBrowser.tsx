@@ -3,6 +3,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { createCard } from '../game/cards';
 import type { RoomSettings } from '../game/types';
 import { useI18n } from '../i18n';
+import { useBackHandler } from '../lib/back';
 import { normalizeRoomCode } from '../lib/ids';
 import type { Net } from '../net';
 import type { RoomSummary } from '../net/firebase';
@@ -73,6 +74,14 @@ export const RoomBrowser = ({
     void net.cleanupStaleRooms();
     return net.subscribeOpenRooms(setRooms);
   }, [mode, net]);
+
+  useBackHandler(
+    () => {
+      setView('list');
+      return true;
+    },
+    view === 'create' && mode === 'online',
+  );
 
   const joinByCode = (e: FormEvent) => {
     e.preventDefault();
